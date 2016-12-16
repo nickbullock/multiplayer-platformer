@@ -162,6 +162,7 @@ window.onload = function () {
         resizeGame();
 
         game.stage.backgroundColor = '#000000';
+        game.stage.disableVisibilityChange = true;
 
         bg = game.add.tileSprite(0, 0, 800, 600, 'background');
         bg.fixedToCamera = true;
@@ -186,7 +187,8 @@ window.onload = function () {
 
         // Generate a random name for the user.
         var playerName = 'user-' + Math.round(Math.random() * 10000);
-        var startingPos = getRandomPosition(20, 20);
+        // var startingPos = getRandomPosition(20, 20);
+        var startingPos = {x:50,y:50}
         var playerColor = Phaser.Color.getColor(getRandomColor(100), getRandomColor(100), getRandomColor(100));
         player = updateUserSprite({
             name: playerName,
