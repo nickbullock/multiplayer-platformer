@@ -12,7 +12,7 @@ window.onload = function () {
 
     var gameWidth = 800, gameHeight = 600;
 
-    var game = new Phaser.Game(gameWidth, gameHeight, Phaser.CANVAS, 'mygame', {
+    var game = new Phaser.Game(gameWidth, gameHeight, Phaser.CANVAS, 'valhall.io', {
         preload: preload,
         create: create,
         update: update
@@ -60,9 +60,11 @@ window.onload = function () {
 
         var user = users[playerName];
 
+        if(player && (playerName !== player.name)){
+            user.sprite.body.moves = false;
+        }
 
         if(x > user.x){
-            console.log('right');
             user.sprite.animations.play('right')
             user.facing = {
                 right: true,
@@ -70,7 +72,6 @@ window.onload = function () {
             }
         }
         else if(x < user.x){
-            console.log('left')
             user.sprite.animations.play('left')
             user.facing = {
                 right: false,
@@ -78,7 +79,6 @@ window.onload = function () {
             }
         }
         else{
-            console.log('stand')
             user.sprite.animations.stop();
             if(user.facing.left){
                 user.sprite.frame = 17;
@@ -88,9 +88,8 @@ window.onload = function () {
             }
         }
 
-
-        user.x = user.sprite.position.x = x;
-        user.y = user.sprite.position.y = y;
+        user.x = user.sprite.x = x;
+        user.y = user.sprite.y = y;
         user.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 10);
     }
 
@@ -122,6 +121,12 @@ window.onload = function () {
             user.color = userData.color;
             user.sprite = users.create(0, 0, 'dude');
 
+            user.sprite.body.bounce.y = 0.2;
+            user.sprite.checkWorldBounds = true;
+            user.sprite.body.collideWorldBounds = true;
+            user.sprite.body.maxVelocity.y = 500;
+            user.sprite.body.setSize(50, 70, 0, 0);
+
             user.facing = {
                 right: true,
                 left: false
@@ -132,6 +137,8 @@ window.onload = function () {
             user.sprite.animations.add('right', [9, 10, 11, 12, 13, 14, 15, 16], 10, true);
             user.sprite.animations.add('jumpright', [18, 19, 20, 21, 22, 23, 24, 25], 7, false);
             user.sprite.animations.add('jumpleft', [33, 32, 31, 30, 29, 28, 27, 26], 7, false);
+            user.sprite.anchor.x = 0.5;
+            user.sprite.anchor.y = 0.5;
 
             moveUser(userData.name, userData.x, userData.y);
         }
@@ -178,12 +185,6 @@ window.onload = function () {
         users = game.add.group();
         users.enableBody = true;
         users.physicsBodyType = Phaser.Physics.ARCADE;
-        users.setAll('outOfBoundsKill', true);
-        users.setAll('checkWorldBounds', true);
-        users.setAll('collideWorldBounds', true);
-        users.setAll('anchor.x', 0.5);
-        users.setAll('anchor.y', 0.5);
-        users.callAll('body.setSize', 'body', 50, 70, 0, 0);
 
         // Generate a random name for the user.
         var playerName = 'user-' + Math.round(Math.random() * 10000);
@@ -271,6 +272,7 @@ window.onload = function () {
 
     function update() {
         var hitPlatform = game.physics.arcade.collide(users, layer);
+        game.physics.arcade.collide(users);
         player.sprite.body.velocity.x = 0;
         
         if (keys.up.isDown && player.sprite.body.onFloor() && hitPlatform ) {
@@ -292,7 +294,7 @@ window.onload = function () {
                 right: false
             };
         }
-        moveUser(player.name, player.sprite.position.x, player.sprite.position.y);
+        moveUser(player.name, player.sprite.x, player.sprite.y);
     }
 
 };

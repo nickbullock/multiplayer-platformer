@@ -36,16 +36,18 @@ module.exports.run = function (worker) {
   };
 
   /*
-    In here we handle our incoming realtime connections and listen for events.
-  */
+   In here we handle our incoming realtime connections and listen for events.
+   */
   scServer.on('connection', function (socket) {
     socket.on('join', function (playerData) {
       // Create an auth token to track this player
       socket.setAuthToken({
-        name: playerData.name
+        name: playerData.name,
+        color: playerData.color
       });
       scServer.exchange.publish('player-join', {
         name: playerData.name,
+        color: playerData.color,
         x: playerData.x,
         y: playerData.y
       });
@@ -59,11 +61,12 @@ module.exports.run = function (worker) {
         // It's cheaper to publish 1 long 100 KB message than 100 short 1 KB messages.
         playerPositionsBuffer.push({
           name: playerToken.name,
+          color: playerToken.color,
           x: playerData.x,
           y: playerData.y
         });
         if (!positionFlushTimeout) {
-          positionFlushTimeout = setTimeout(flushPlayerPositions, 20);
+          positionFlushTimeout = setTimeout(flushPlayerPositions, 10);
         }
       }
     });
