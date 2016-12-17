@@ -45,7 +45,7 @@ window.onload = function () {
             right: game.input.keyboard.addKey(Phaser.Keyboard.RIGHT),
             left: game.input.keyboard.addKey(Phaser.Keyboard.LEFT)
         };
-        game.load.tilemap('level1', '../assets/level1.json', null, Phaser.Tilemap.TILED_JSON);
+        game.load.tilemap('lvl2', '../assets/lvl2.json', null, Phaser.Tilemap.TILED_JSON);
         game.load.image('tiles-1', '../assets/tiles-1.png');
         game.load.spritesheet('dude', '../assets/player5.png', 75, 73);
         game.load.spritesheet('dude2', '../assets/player6.png', 75, 73);
@@ -174,11 +174,11 @@ window.onload = function () {
         bg = game.add.tileSprite(0, 0, 800, 600, 'background');
         bg.fixedToCamera = true;
 
-        map = game.add.tilemap('level1');
+        map = game.add.tilemap('lvl2');
         map.addTilesetImage('tiles-1');
         map.setCollisionByExclusion([13, 14, 15, 16, 46, 47, 48, 49, 50, 51]);
 
-        layer = map.createLayer('Tile Layer 1');
+        layer = map.createLayer('lvl2');
         layer.resizeWorld();
         game.physics.arcade.gravity.y = 600;
 
