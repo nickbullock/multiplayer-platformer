@@ -15,7 +15,8 @@ window.onload = function () {
     var game = new Phaser.Game(gameWidth, gameHeight, Phaser.CANVAS, 'valhall.io', {
         preload: preload,
         create: create,
-        update: update
+        update: update,
+        render: render
     });
 
     var player;
@@ -48,6 +49,10 @@ window.onload = function () {
         game.load.tilemap('lvl2', '../assets/lvl2.json', null, Phaser.Tilemap.TILED_JSON);
         game.load.image('tiles-1', '../assets/tiles-1.png');
         game.load.spritesheet('dude', '../assets/player5.png', 75, 73);
+        game.load.spritesheet('jackBeardBody', '../assets/jack-beard/body.png', 75, 75);
+        game.load.spritesheet('jackBeardHead', '../assets/jack-beard/head.png', 75, 75);
+        game.load.spritesheet('jackBeardFrontArm', '../assets/jack-beard/front-arm.png', 75, 75);
+        game.load.spritesheet('jackBeardBackArm', '../assets/jack-beard/back-arm.png', 75, 75);
         game.load.spritesheet('dude2', '../assets/player6.png', 75, 73);
         game.load.spritesheet('weapon', '../assets/gunsall13.png', 65, 32);
         game.load.image('background', '../assets/bg123.png');
@@ -65,14 +70,14 @@ window.onload = function () {
         }
 
         if(x > user.x){
-            user.sprite.animations.play('right')
+            // user.sprite.animations.play('right')
             user.facing = {
                 right: true,
                 left: false
             }
         }
         else if(x < user.x){
-            user.sprite.animations.play('left')
+            // user.sprite.animations.play('left')
             user.facing = {
                 right: false,
                 left: true
@@ -90,7 +95,7 @@ window.onload = function () {
 
         user.x = user.sprite.x = x;
         user.y = user.sprite.y = y;
-        user.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 10);
+        user.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
     }
 
     function removeUserSprite(userData) {
@@ -109,23 +114,40 @@ window.onload = function () {
             users[userData.name] = user = {};
             user.name = userData.name;
 
+            user.spriteType = userData.spriteType;
+
             var textStyle = {
                 font: '16px Arial',
                 fill: '#ffffff',
                 align: 'center'
             };
 
-            user.label = game.add.text(0, 0, user.name, textStyle);
-            user.label.anchor.set(0.5);
-
             user.color = userData.color;
-            user.sprite = users.create(0, 0, 'dude');
+            user.sprite = users.create(0, 0);
 
-            user.sprite.body.bounce.y = 0.2;
+            user.sprite.scale.setTo(1.2, 1.2);
+
+            user.sprite.body.bounce.y = 0.1;
             user.sprite.checkWorldBounds = true;
             user.sprite.body.collideWorldBounds = true;
             user.sprite.body.maxVelocity.y = 500;
-            user.sprite.body.setSize(50, 70, 0, 0);
+            user.sprite.body.setSize(35, 75, 0, -20);
+            user.sprite.anchor.setTo(0.5, 0.5);
+
+            backArm = game.add.sprite(0, 0, userData.spriteType + 'BackArm');
+            body = game.add.sprite(0, 0, userData.spriteType + 'Body');
+            head = game.add.sprite(0, 0, userData.spriteType + 'Head');
+            frontArm = game.add.sprite(0, 0, userData.spriteType + 'FrontArm');
+
+            backArm.anchor.setTo(0.5, 0.5);
+            frontArm.anchor.setTo(0.5, 0.5);
+            body.anchor.setTo(0.5, 0.5);
+            head.anchor.setTo(0.5, 0.5);
+
+            user.sprite.addChild(backArm);
+            user.sprite.addChild(body);
+            user.sprite.addChild(head);
+            user.sprite.addChild(frontArm);
 
             user.facing = {
                 right: true,
@@ -133,12 +155,13 @@ window.onload = function () {
             };
             user.health = 100;
 
-            user.sprite.animations.add('left', [8, 7, 6, 5, 4, 3, 2, 1], 10, true);
-            user.sprite.animations.add('right', [9, 10, 11, 12, 13, 14, 15, 16], 10, true);
-            user.sprite.animations.add('jumpright', [18, 19, 20, 21, 22, 23, 24, 25], 7, false);
-            user.sprite.animations.add('jumpleft', [33, 32, 31, 30, 29, 28, 27, 26], 7, false);
-            user.sprite.anchor.x = 0.5;
-            user.sprite.anchor.y = 0.5;
+            user.label = game.add.text(0, 0, user.name, textStyle);
+            user.label.anchor.set(0.5);
+
+            // user.sprite.animations.add('left', [8, 7, 6, 5, 4, 3, 2, 1], 10, true);
+            // user.sprite.animations.add('right', [9, 10, 11, 12, 13, 14, 15, 16], 10, true);
+            // user.sprite.animations.add('jumpright', [18, 19, 20, 21, 22, 23, 24, 25], 7, false);
+            // user.sprite.animations.add('jumpleft', [33, 32, 31, 30, 29, 28, 27, 26], 7, false);
 
             moveUser(userData.name, userData.x, userData.y);
         }
@@ -189,8 +212,9 @@ window.onload = function () {
         // Generate a random name for the user.
         var playerName = 'user-' + Math.round(Math.random() * 10000);
         // var startingPos = getRandomPosition(20, 20);
-        var startingPos = {x:50,y:50}
+        var startingPos = {x:50,y:50};
         var playerColor = Phaser.Color.getColor(getRandomColor(100), getRandomColor(100), getRandomColor(100));
+        
         player = updateUserSprite({
             name: playerName,
             color: playerColor,
@@ -199,7 +223,8 @@ window.onload = function () {
             facing: {
                 right: true,
                 left: false
-            }
+            },
+            spriteType: 'jackBeard'
         });
 
         game.camera.follow(player.sprite);
@@ -221,7 +246,8 @@ window.onload = function () {
                     name: player.name,
                     x: player.x,
                     y: player.y,
-                    facing: player.facing
+                    facing: player.facing,
+                    spriteType: player.spriteType
                 });
             }
         });
@@ -245,14 +271,16 @@ window.onload = function () {
         socket.emit('join', {
             name: player.name,
             x: player.x,
-            y: player.y
+            y: player.y,
+            spriteType: player.spriteType
         });
 
         function sendPlayerMove() {
             var playerPositionData = {
                 x: player.sprite.x,
                 y: player.sprite.y,
-                facing: player.facing
+                facing: player.facing,
+                spriteType: player.spriteType
             };
             socket.emit('move', playerPositionData);
         }
@@ -271,6 +299,12 @@ window.onload = function () {
     }
 
     function update() {
+
+        // backArm.rotation = game.physics.arcade.angleToPointer(backArm);
+        // frontArm.rotation = game.physics.arcade.angleToPointer(frontArm);
+        // head.rotation = game.physics.arcade.angleToPointer(head);
+        // player.sprite.rotation = game.physics.arcade.angleToPointer(player.sprite);
+
         var hitPlatform = game.physics.arcade.collide(users, layer);
         game.physics.arcade.collide(users);
         player.sprite.body.velocity.x = 0;
@@ -280,6 +314,7 @@ window.onload = function () {
         }
 
         if (keys.right.isDown) {
+            player.sprite.scale.x = 1.2;
             player.sprite.body.velocity.x = moveSpeed;
             player.facing = {
                 left: false,
@@ -288,6 +323,7 @@ window.onload = function () {
         }
 
         if(keys.left.isDown) {
+            player.sprite.scale.x = -1.2;
             player.sprite.body.velocity.x = -moveSpeed;
             player.facing = {
                 left: true,
@@ -295,6 +331,14 @@ window.onload = function () {
             };
         }
         moveUser(player.name, player.sprite.x, player.sprite.y);
+    }
+
+    function render() {
+        game.debug.bodyInfo(player.sprite, 32, 32);
+        game.debug.body(player.sprite);
+        // game.debug.spriteInfo(head, 32, 32);
+        // game.debug.spriteBounds(head);
+        // game.debug.spriteCorners(head, true, true);
     }
 
 };

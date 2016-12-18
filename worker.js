@@ -49,7 +49,8 @@ module.exports.run = function (worker) {
         name: playerData.name,
         color: playerData.color,
         x: playerData.x,
-        y: playerData.y
+        y: playerData.y,
+        spriteType: playerData.spriteType
       });
     });
     socket.on('move', function (playerData) {
@@ -63,7 +64,8 @@ module.exports.run = function (worker) {
           name: playerToken.name,
           color: playerToken.color,
           x: playerData.x,
-          y: playerData.y
+          y: playerData.y,
+          spriteType: playerData.spriteType
         });
         if (!positionFlushTimeout) {
           positionFlushTimeout = setTimeout(flushPlayerPositions, 10);
