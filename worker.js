@@ -50,11 +50,14 @@ module.exports.run = function (worker) {
         color: playerData.color,
         x: playerData.x,
         y: playerData.y,
+        facing: playerData.facing,
         spriteType: playerData.spriteType
       });
     });
     socket.on('move', function (playerData) {
       var playerToken = socket.getAuthToken();
+
+      console.log(playerData)
 
       if (playerToken) {
         // We will batch together multiple position changes within a 20 millisecond timeframe
@@ -65,6 +68,7 @@ module.exports.run = function (worker) {
           color: playerToken.color,
           x: playerData.x,
           y: playerData.y,
+          facing: playerData.facing,
           spriteType: playerData.spriteType
         });
         if (!positionFlushTimeout) {

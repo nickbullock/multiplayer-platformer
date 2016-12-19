@@ -48,11 +48,11 @@ window.onload = function () {
         };
         game.load.tilemap('lvl2', '../assets/lvl2.json', null, Phaser.Tilemap.TILED_JSON);
         game.load.image('tiles-1', '../assets/tiles-1.png');
-        game.load.spritesheet('dude', '../assets/player5.png', 75, 73);
-        game.load.spritesheet('jackBeardBody', '../assets/jack-beard/body.png', 75, 75);
-        game.load.spritesheet('jackBeardHead', '../assets/jack-beard/head.png', 75, 75);
-        game.load.spritesheet('jackBeardFrontArm', '../assets/jack-beard/front-arm.png', 75, 75);
-        game.load.spritesheet('jackBeardBackArm', '../assets/jack-beard/back-arm.png', 75, 75);
+        game.load.spritesheet('dude', '../assets/player5.png');
+        game.load.image('jackBeardBody', '../assets/jack-beard/body.png');
+        game.load.image('jackBeardHead', '../assets/jack-beard/head.png');
+        game.load.image('jackBeardFrontArm', '../assets/jack-beard/front-arm.png');
+        game.load.image('jackBeardBackArm', '../assets/jack-beard/back-arm.png');
         game.load.spritesheet('dude2', '../assets/player6.png', 75, 73);
         game.load.spritesheet('weapon', '../assets/gunsall13.png', 65, 32);
         game.load.image('background', '../assets/bg123.png');
@@ -65,37 +65,43 @@ window.onload = function () {
 
         var user = users[playerName];
 
-        if(player && (playerName !== player.name)){
-            user.sprite.body.moves = false;
-        }
+        // if(player && (playerName !== player.name)){
+        //     user.sprite.forEach(function(sprite){
+        //         sprite.body.moves = false;
+        //     })
+        // }
+        //
+        // if(x > user.x){
+        //     // user.sprite.animations.play('right')
+        //     user.facing = 1;
+        //     user.sprite.forEach(function(sprite){
+        //         sprite.scale.x = 1;
+        //     });
+        // }
+        // else if(x < user.x){
+        //     // user.sprite.animations.play('left')
+        //     user.facing = -1;
+        //     user.sprite.forEach(function(sprite){
+        //         sprite.scale.x = -1;
+        //     });
+        // }
+        // else{
+        //     // user.sprite.animations.stop();
+        //     if(user.facing == -1){
+        //         user.sprite.frame = 17;
+        //     }
+        //     else if(user.facing == 1){
+        //         user.sprite.frame = 0;
+        //     }
+        // }
 
-        if(x > user.x){
-            // user.sprite.animations.play('right')
-            user.facing = {
-                right: true,
-                left: false
-            }
-        }
-        else if(x < user.x){
-            // user.sprite.animations.play('left')
-            user.facing = {
-                right: false,
-                left: true
-            }
-        }
-        else{
-            user.sprite.animations.stop();
-            if(user.facing.left){
-                user.sprite.frame = 17;
-            }
-            else if(user.facing.right){
-                user.sprite.frame = 0;
-            }
-        }
-
-        user.x = user.sprite.x = x;
-        user.y = user.sprite.y = y;
-        user.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
+        // user.x = x;
+        // user.y  = y;
+        // user.sprite.forEach(function(sprite){
+        //     sprite.x = x;
+        //     sprite.y = y;
+        // });
+        user.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 10);
     }
 
     function removeUserSprite(userData) {
@@ -123,36 +129,26 @@ window.onload = function () {
             };
 
             user.color = userData.color;
-            user.sprite = users.create(0, 0);
 
-            user.sprite.scale.setTo(1.2, 1.2);
+            user.sprite = game.add.group();
 
-            user.sprite.body.bounce.y = 0.1;
-            user.sprite.checkWorldBounds = true;
-            user.sprite.body.collideWorldBounds = true;
-            user.sprite.body.maxVelocity.y = 500;
-            user.sprite.body.setSize(35, 75, 0, -20);
-            user.sprite.anchor.setTo(0.5, 0.5);
+            var backArm = user.sprite.create(user.sprite.x, user.sprite.y, userData.spriteType + 'BackArm');
+            var body = user.sprite.create(0, 0, userData.spriteType + 'Body');
+            var head = user.sprite.create(0, user.sprite.y - 30, userData.spriteType + 'Head');
+            var frontArm = user.sprite.create(0, 0, userData.spriteType + 'FrontArm');
 
-            backArm = game.add.sprite(0, 0, userData.spriteType + 'BackArm');
-            body = game.add.sprite(0, 0, userData.spriteType + 'Body');
-            head = game.add.sprite(0, 0, userData.spriteType + 'Head');
-            frontArm = game.add.sprite(0, 0, userData.spriteType + 'FrontArm');
+            user.sprite.forEach(function(sprite){
+                // sprite.anchor.setTo(0.5, 0.5);
+                game.physics.arcade.enable(sprite);
+                sprite.body.bounce.y = 0.1;
+                sprite.checkWorldBounds = true;
+                sprite.body.collideWorldBounds = true;
+                sprite.body.maxVelocity.y = 500;
+                sprite.body.setSize(35, 75, 23, 0);
 
-            backArm.anchor.setTo(0.5, 0.5);
-            frontArm.anchor.setTo(0.5, 0.5);
-            body.anchor.setTo(0.5, 0.5);
-            head.anchor.setTo(0.5, 0.5);
+            });
 
-            user.sprite.addChild(backArm);
-            user.sprite.addChild(body);
-            user.sprite.addChild(head);
-            user.sprite.addChild(frontArm);
-
-            user.facing = {
-                right: true,
-                left: false
-            };
+            user.facing = userData.facing;
             user.health = 100;
 
             user.label = game.add.text(0, 0, user.name, textStyle);
@@ -162,6 +158,8 @@ window.onload = function () {
             // user.sprite.animations.add('right', [9, 10, 11, 12, 13, 14, 15, 16], 10, true);
             // user.sprite.animations.add('jumpright', [18, 19, 20, 21, 22, 23, 24, 25], 7, false);
             // user.sprite.animations.add('jumpleft', [33, 32, 31, 30, 29, 28, 27, 26], 7, false);
+
+            users.add(user.sprite);
 
             moveUser(userData.name, userData.x, userData.y);
         }
@@ -220,14 +218,11 @@ window.onload = function () {
             color: playerColor,
             x: startingPos.x,
             y: startingPos.y,
-            facing: {
-                right: true,
-                left: false
-            },
+            facing: 1,
             spriteType: 'jackBeard'
         });
 
-        game.camera.follow(player.sprite);
+        game.camera.follow(player.sprite.children[2]);
 
         var getUserPresenceChannelName = function (username) {
             return 'user/' + username + '/presence-notification';
@@ -270,15 +265,16 @@ window.onload = function () {
 
         socket.emit('join', {
             name: player.name,
-            x: player.x,
-            y: player.y,
+            x: player.sprite.children[0].x,
+            y: player.sprite.children[0].y,
+            facing: player.facing,
             spriteType: player.spriteType
         });
 
         function sendPlayerMove() {
             var playerPositionData = {
-                x: player.sprite.x,
-                y: player.sprite.y,
+                x: player.x,
+                y: player.y,
                 facing: player.facing,
                 spriteType: player.spriteType
             };
@@ -303,40 +299,64 @@ window.onload = function () {
         // backArm.rotation = game.physics.arcade.angleToPointer(backArm);
         // frontArm.rotation = game.physics.arcade.angleToPointer(frontArm);
         // head.rotation = game.physics.arcade.angleToPointer(head);
-        // player.sprite.rotation = game.physics.arcade.angleToPointer(player.sprite);
 
-        var hitPlatform = game.physics.arcade.collide(users, layer);
-        game.physics.arcade.collide(users);
-        player.sprite.body.velocity.x = 0;
-        
-        if (keys.up.isDown && player.sprite.body.onFloor() && hitPlatform ) {
-            player.sprite.body.velocity.y = -400;
-        }
+        users.forEach(function(user){
+            game.physics.arcade.collide(user);
+            user.forEach(function(sprite){
+                game.physics.arcade.collide(sprite, layer);
+            })
+        });
 
-        if (keys.right.isDown) {
-            player.sprite.scale.x = 1.2;
-            player.sprite.body.velocity.x = moveSpeed;
-            player.facing = {
-                left: false,
-                right: true
-            };
-        }
+        if(player && player.sprite && player.sprite.children.length > 0){
 
-        if(keys.left.isDown) {
-            player.sprite.scale.x = -1.2;
-            player.sprite.body.velocity.x = -moveSpeed;
-            player.facing = {
-                left: true,
-                right: false
-            };
+            player.sprite.forEach(function(sprite){
+                switch(sprite.key){
+                    case 'jackBeardHead':
+                        sprite.x = player.sprite.children[1].x;
+                        sprite.y = player.sprite.children[1].y - 30;
+                        break;
+                }
+            });
+
+            // player.sprite.forEach(function(sprite){
+            //     if(sprite.key !== 'jackBeardBody'){
+            //         sprite.rotation = game.physics.arcade.angleToPointer(sprite);
+            //     }
+            // });
+
+            player.sprite.setAll('body.velocity.x', 0);
+
+            if (keys.up.isDown && player.sprite.children[0].body.onFloor()) {
+                player.sprite.setAll('body.velocity.y', -400);
+            }
+
+            if (keys.right.isDown) {
+                player.sprite.forEach(function(sprite){
+                    sprite.scale.x = 1;
+                });
+                player.sprite.setAll('body.velocity.x', moveSpeed);
+                player.facing = 1;
+            }
+
+            if(keys.left.isDown) {
+                player.sprite.forEach(function(sprite){
+                    sprite.scale.x = -1;
+                });
+                player.sprite.setAll('body.velocity.x', -moveSpeed);
+                player.facing = -1;
+            }
+
+            moveUser(player.name, player.sprite.children[0].x, player.sprite.children[0].y);
         }
-        moveUser(player.name, player.sprite.x, player.sprite.y);
     }
 
     function render() {
-        game.debug.bodyInfo(player.sprite, 32, 32);
-        game.debug.body(player.sprite);
-        // game.debug.spriteInfo(head, 32, 32);
+        // player.sprite.forEach(function(player){
+        //     // game.debug.spriteInfo(player, 32, 32);
+        //     // game.debug.bodyInfo(player, 32, 32);
+        //     game.debug.body(player);
+        // });
+
         // game.debug.spriteBounds(head);
         // game.debug.spriteCorners(head, true, true);
     }
