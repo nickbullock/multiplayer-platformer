@@ -318,6 +318,7 @@ window.onload = function () {
                 }
             });
 
+            
             // player.sprite.forEach(function(sprite){
             //     if(sprite.key !== 'jackBeardBody'){
             //         sprite.rotation = game.physics.arcade.angleToPointer(sprite);
