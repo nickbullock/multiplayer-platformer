@@ -65,26 +65,26 @@ window.onload = function () {
 
         var user = users[playerName];
 
-        if(player && (playerName !== player.name)){
+        if (player && (playerName !== player.name)) {
             user.sprite.body.moves = false;
         }
 
-        if(x > user.x){
+        if (x > user.x) {
             // user.sprite.animations.play('right')
             user.facing = 1;
             user.sprite.scale.x = 1;
         }
-        else if(x < user.x){
+        else if (x < user.x) {
             // user.sprite.animations.play('left')
             user.facing = -1;
             user.sprite.scale.x = -1;
         }
-        else{
+        else {
             user.sprite.animations.stop();
-            if(user.facing === -1){
+            if (user.facing === -1) {
                 user.sprite.frame = 17;
             }
-            else if(user.facing === 1){
+            else if (user.facing === 1) {
                 user.sprite.frame = 0;
             }
         }
@@ -128,22 +128,22 @@ window.onload = function () {
             user.sprite.body.setSize(35, 75, 0, -20);
             user.sprite.anchor.setTo(0.5, 0.5);
 
-            backArm = game.add.sprite(0, -5, userData.spriteType + 'BackArm');
-            body = game.add.sprite(4, 10, userData.spriteType + 'Body');
-            head = game.add.sprite(0, -20, userData.spriteType + 'Head');
-            frontArm = game.add.sprite(0, -5, userData.spriteType + 'FrontArm');
+            backArm = game.add.sprite(0, 0, userData.spriteType + 'BackArm');
+            body = game.add.sprite(4, 15, userData.spriteType + 'Body');
+            head = game.add.sprite(0, -15, userData.spriteType + 'Head');
+            frontArm = game.add.sprite(0, 0, userData.spriteType + 'FrontArm');
 
             backArm.anchor.setTo(0.4, 0.5);
             frontArm.anchor.setTo(0.4, 0.5);
             body.anchor.setTo(0.5, 0.5);
-            head.anchor.setTo(0.52, 0.5);
+            head.anchor.setTo(0.5, 0.51);
 
             user.sprite.addChild(backArm);
             user.sprite.addChild(body);
             user.sprite.addChild(head);
             user.sprite.addChild(frontArm);
 
-            user.facing = 1
+            user.facing = 1;
             user.health = 100;
 
             user.label = game.add.text(0, 0, user.name, textStyle);
@@ -159,15 +159,17 @@ window.onload = function () {
         return user;
     }
 
-     function goFullScreen() {
-         game.scale.fullScreenScaleMode = Phaser.ScaleManager.EXACT_FIT;
-         if (game.scale.isFullScreen) {    game.scale.stopFullScreen();  }
-         else {
-             game.scale.startFullScreen();
-         }
-     }
+    function goFullScreen() {
+        game.scale.fullScreenScaleMode = Phaser.ScaleManager.EXACT_FIT;
+        if (game.scale.isFullScreen) {
+            game.scale.stopFullScreen();
+        }
+        else {
+            game.scale.startFullScreen();
+        }
+    }
 
-    var resizeGame = function() {
+    var resizeGame = function () {
         game.scale.pageAlignVertically = true;
         game.scale.pageAlignHorizontally = true;
         game.scale.setShowAll();
@@ -203,9 +205,9 @@ window.onload = function () {
         // Generate a random name for the user.
         var playerName = 'user-' + Math.round(Math.random() * 10000);
         // var startingPos = getRandomPosition(20, 20);
-        var startingPos = {x:50,y:50};
+        var startingPos = {x: 50, y: 50};
         var playerColor = Phaser.Color.getColor(getRandomColor(100), getRandomColor(100), getRandomColor(100));
-        
+
         player = updateUserSprite({
             name: playerName,
             color: playerColor,
@@ -289,10 +291,12 @@ window.onload = function () {
     function update() {
 
         var hitPlatform = game.physics.arcade.collide(users, layer);
+        var angle = angleToPointer(player.sprite);
+        console.log(angle)
         game.physics.arcade.collide(users);
         player.sprite.body.velocity.x = 0;
-        
-        if (keys.up.isDown && player.sprite.body.onFloor() && hitPlatform ) {
+
+        if (keys.up.isDown && player.sprite.body.onFloor() && hitPlatform) {
             player.sprite.body.velocity.y = -400;
         }
 
@@ -302,25 +306,44 @@ window.onload = function () {
             player.facing = 1;
         }
 
-        if(keys.left.isDown) {
+        if (keys.left.isDown) {
             player.sprite.scale.x = -1;
             player.sprite.body.velocity.x = -moveSpeed;
             player.facing = -1;
         }
 
-        // backArm.rotation = game.physics.arcade.angleToPointer(player.sprite);
-        // frontArm.rotation = game.physics.arcade.angleToPointer(player.sprite);
-        // head.rotation = game.physics.arcade.angleToPointer(player.sprite);
-        
+        if (player.facing === 1 && angle > -0.8 && angle < 0.8) {
+            player.sprite.children.forEach(function (sprite) {
+                if(sprite.key !== 'jackBeardBody'){
+                    sprite.rotation = game.physics.arcade.angleToPointer(player.sprite);
+                }
+            });
+        }
+        else if (player.facing === -1 && angle > Math.PI - 0.8 || angle < 0.8 - Math.PI) {
+            player.sprite.children.forEach(function (sprite) {
+                if(sprite.key !== 'jackBeardBody'){
+                    sprite.rotation = Math.PI - game.physics.arcade.angleToPointer(player.sprite);
+                }
+            });
+        }
+
         moveUser(player.name, player.sprite.x, player.sprite.y);
     }
 
     function render() {
         // game.debug.bodyInfo(player.sprite, 32, 32);
         // game.debug.body(player.sprite);
-        // game.debug.spriteInfo(head, 32, 32);
+        // game.debug.spriteInfo(player.sprite, 32, 32);
         // game.debug.spriteBounds(head);
         // game.debug.spriteCorners(head, true, true);
+    }
+
+   function angleToPointer(displayObject, pointer) {
+        pointer = pointer || game.input.activePointer;
+        var dx = pointer.worldX - displayObject.x;
+        var dy = pointer.worldY - displayObject.y;
+
+        return Math.atan2(dy, dx);
     }
 
 };
