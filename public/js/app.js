@@ -71,24 +71,20 @@ window.onload = function () {
 
         if(x > user.x){
             // user.sprite.animations.play('right')
-            user.facing = {
-                right: true,
-                left: false
-            }
+            user.facing = 1;
+            user.sprite.scale.x = 1;
         }
         else if(x < user.x){
             // user.sprite.animations.play('left')
-            user.facing = {
-                right: false,
-                left: true
-            }
+            user.facing = -1;
+            user.sprite.scale.x = -1;
         }
         else{
             user.sprite.animations.stop();
-            if(user.facing.left){
+            if(user.facing === -1){
                 user.sprite.frame = 17;
             }
-            else if(user.facing.right){
+            else if(user.facing === 1){
                 user.sprite.frame = 0;
             }
         }
@@ -125,8 +121,6 @@ window.onload = function () {
             user.color = userData.color;
             user.sprite = users.create(0, 0);
 
-            user.sprite.scale.setTo(1.2, 1.2);
-
             user.sprite.body.bounce.y = 0.1;
             user.sprite.checkWorldBounds = true;
             user.sprite.body.collideWorldBounds = true;
@@ -134,25 +128,22 @@ window.onload = function () {
             user.sprite.body.setSize(35, 75, 0, -20);
             user.sprite.anchor.setTo(0.5, 0.5);
 
-            backArm = game.add.sprite(0, 0, userData.spriteType + 'BackArm');
-            body = game.add.sprite(0, 0, userData.spriteType + 'Body');
-            head = game.add.sprite(0, 0, userData.spriteType + 'Head');
-            frontArm = game.add.sprite(0, 0, userData.spriteType + 'FrontArm');
+            backArm = game.add.sprite(0, -5, userData.spriteType + 'BackArm');
+            body = game.add.sprite(4, 10, userData.spriteType + 'Body');
+            head = game.add.sprite(0, -20, userData.spriteType + 'Head');
+            frontArm = game.add.sprite(0, -5, userData.spriteType + 'FrontArm');
 
-            backArm.anchor.setTo(0.5, 0.5);
-            frontArm.anchor.setTo(0.5, 0.5);
+            backArm.anchor.setTo(0.4, 0.5);
+            frontArm.anchor.setTo(0.4, 0.5);
             body.anchor.setTo(0.5, 0.5);
-            head.anchor.setTo(0.5, 0.5);
+            head.anchor.setTo(0.52, 0.5);
 
             user.sprite.addChild(backArm);
             user.sprite.addChild(body);
             user.sprite.addChild(head);
             user.sprite.addChild(frontArm);
 
-            user.facing = {
-                right: true,
-                left: false
-            };
+            user.facing = 1
             user.health = 100;
 
             user.label = game.add.text(0, 0, user.name, textStyle);
@@ -220,10 +211,7 @@ window.onload = function () {
             color: playerColor,
             x: startingPos.x,
             y: startingPos.y,
-            facing: {
-                right: true,
-                left: false
-            },
+            facing: 1,
             spriteType: 'jackBeard'
         });
 
@@ -300,11 +288,6 @@ window.onload = function () {
 
     function update() {
 
-        // backArm.rotation = game.physics.arcade.angleToPointer(backArm);
-        // frontArm.rotation = game.physics.arcade.angleToPointer(frontArm);
-        // head.rotation = game.physics.arcade.angleToPointer(head);
-        // player.sprite.rotation = game.physics.arcade.angleToPointer(player.sprite);
-
         var hitPlatform = game.physics.arcade.collide(users, layer);
         game.physics.arcade.collide(users);
         player.sprite.body.velocity.x = 0;
@@ -314,28 +297,27 @@ window.onload = function () {
         }
 
         if (keys.right.isDown) {
-            player.sprite.scale.x = 1.2;
+            player.sprite.scale.x = 1;
             player.sprite.body.velocity.x = moveSpeed;
-            player.facing = {
-                left: false,
-                right: true
-            };
+            player.facing = 1;
         }
 
         if(keys.left.isDown) {
-            player.sprite.scale.x = -1.2;
+            player.sprite.scale.x = -1;
             player.sprite.body.velocity.x = -moveSpeed;
-            player.facing = {
-                left: true,
-                right: false
-            };
+            player.facing = -1;
         }
+
+        // backArm.rotation = game.physics.arcade.angleToPointer(player.sprite);
+        // frontArm.rotation = game.physics.arcade.angleToPointer(player.sprite);
+        // head.rotation = game.physics.arcade.angleToPointer(player.sprite);
+        
         moveUser(player.name, player.sprite.x, player.sprite.y);
     }
 
     function render() {
-        game.debug.bodyInfo(player.sprite, 32, 32);
-        game.debug.body(player.sprite);
+        // game.debug.bodyInfo(player.sprite, 32, 32);
+        // game.debug.body(player.sprite);
         // game.debug.spriteInfo(head, 32, 32);
         // game.debug.spriteBounds(head);
         // game.debug.spriteCorners(head, true, true);
