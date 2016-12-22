@@ -10,7 +10,7 @@ window.onload = function () {
     //  Although it will work fine with this tutorial, it's almost certainly not the most current version.
     //  Be sure to replace it with an updated version before you start experimenting with adding your own code.
 
-    var gameWidth = 800, gameHeight = 600;
+    var gameWidth = 1024, gameHeight = 768;
 
     var game = new Phaser.Game(gameWidth, gameHeight, Phaser.CANVAS, 'valhall.io', {
         preload: preload,
@@ -33,7 +33,9 @@ window.onload = function () {
             up: game.input.keyboard.addKey(Phaser.Keyboard.UP),
             down: game.input.keyboard.addKey(Phaser.Keyboard.DOWN),
             right: game.input.keyboard.addKey(Phaser.Keyboard.RIGHT),
-            left: game.input.keyboard.addKey(Phaser.Keyboard.LEFT)
+            left: game.input.keyboard.addKey(Phaser.Keyboard.LEFT),
+            rmb: game.input.mousePointer.rightButton,
+            lmb: game.input.mousePointer.leftButton.isDown
         };
         game.load.tilemap('lvl2', '../assets/lvl2.json', null, Phaser.Tilemap.TILED_JSON);
         game.load.image('tiles-1', '../assets/tiles-1.png');
@@ -44,7 +46,7 @@ window.onload = function () {
         game.load.spritesheet('jackBeardBackArm', '../assets/jack-beard/back-arm.png', 75, 75);
         game.load.spritesheet('dude2', '../assets/player6.png', 75, 73);
         game.load.spritesheet('weapon', '../assets/gunsall13.png', 65, 32);
-        game.load.image('background', '../assets/bg123.png');
+        game.load.image('background', '../assets/bg-1920.jpg');
         game.load.image('bullet', '../assets/bullet1.png');
         game.load.spritesheet('boom', '../assets/explode.png', 128, 128);
     }
@@ -154,20 +156,10 @@ window.onload = function () {
         return user;
     }
 
-    function goFullScreen() {
-        game.scale.fullScreenScaleMode = Phaser.ScaleManager.EXACT_FIT;
-        if (game.scale.isFullScreen) {
-            game.scale.stopFullScreen();
-        }
-        else {
-            game.scale.startFullScreen();
-        }
-    }
-
     var resizeGame = function () {
         game.scale.pageAlignVertically = true;
         game.scale.pageAlignHorizontally = true;
-        game.scale.setShowAll();
+        // game.scale.setShowAll();
         game.scale.refresh();
     };
 
@@ -175,14 +167,16 @@ window.onload = function () {
 
         game.physics.startSystem(Phaser.Physics.ARCADE);
 
-        game.input.onDown.add(goFullScreen, this);
+        game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
 
-        resizeGame();
+        game.scale.setMinMax(800, 600, 1920, 1080);
+
+        // resizeGame();
 
         game.stage.backgroundColor = '#000000';
         game.stage.disableVisibilityChange = true;
 
-        bg = game.add.tileSprite(0, 0, 800, 600, 'background');
+        bg = game.add.tileSprite(0, 0, gameWidth, gameHeight, 'background');
         bg.fixedToCamera = true;
 
         map = game.add.tilemap('lvl2');
@@ -190,6 +184,7 @@ window.onload = function () {
         map.setCollisionByExclusion([13, 14, 15, 16, 46, 47, 48, 49, 50, 51]);
 
         layer = map.createLayer('lvl2');
+        layer.renderSettings.enableScrollDelta = false;
         layer.resizeWorld();
         game.physics.arcade.gravity.y = 600;
 
@@ -279,6 +274,10 @@ window.onload = function () {
         },
         5);
 
+        function hook() {
+            console.log('hook')
+        }
+
     }
 
     function update() {
@@ -287,6 +286,10 @@ window.onload = function () {
         var angle = angleToPointer(player.sprite);
         // game.physics.arcade.collide(users);
         player.sprite.body.velocity.x = 0;
+
+        if(keys.rmb.isDown){
+            hook()
+        }
 
         if (keys.up.isDown && player.sprite.body.onFloor() && hitPlatform) {
             player.sprite.body.velocity.y = -400;
@@ -315,6 +318,8 @@ window.onload = function () {
     }
 
     function render() {
+        game.time.advancedTiming = true;
+        game.debug.text(game.time.fps , 2, 14, "#00ff00");
         // game.debug.bodyInfo(player.sprite, 32, 32);
         // game.debug.body(player.sprite);
         // game.debug.spriteInfo(player.sprite, 32, 32);
