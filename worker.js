@@ -7,7 +7,6 @@ var morgan = require('morgan');
 var healthChecker = require('sc-framework-health-check');
 
 module.exports.run = function (worker) {
-  console.log('   >> Worker PID:', process.pid);
   var environment = worker.options.environment;
 
   var app = express();
@@ -50,7 +49,8 @@ module.exports.run = function (worker) {
         color: playerData.color,
         x: playerData.x,
         y: playerData.y,
-        spriteType: playerData.spriteType
+        spriteType: playerData.spriteType,
+        rotation: playerData.rotation
       });
     });
     socket.on('move', function (playerData) {
@@ -65,10 +65,11 @@ module.exports.run = function (worker) {
           color: playerToken.color,
           x: playerData.x,
           y: playerData.y,
-          spriteType: playerData.spriteType
+          spriteType: playerData.spriteType,
+          rotation: playerData.rotation
         });
         if (!positionFlushTimeout) {
-          positionFlushTimeout = setTimeout(flushPlayerPositions, 10);
+          positionFlushTimeout = setTimeout(flushPlayerPositions, 8);
         }
       }
     });

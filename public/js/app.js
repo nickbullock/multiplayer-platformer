@@ -28,17 +28,6 @@ window.onload = function () {
         return min + Math.round(Math.random() * randomness);
     }
 
-    function getRandomPosition(spriteWidth, spriteHeight) {
-        var halfSpriteWidth = spriteWidth / 2;
-        var halfSpriteHeight = spriteHeight / 2;
-        var widthRandomness = game.world.width - spriteWidth;
-        var heightRandomness = game.world.height - spriteHeight;
-        return {
-            x: Math.round(halfSpriteWidth + widthRandomness * Math.random()),
-            y: Math.round(halfSpriteHeight + heightRandomness * Math.random())
-        };
-    }
-
     function preload() {
         keys = {
             up: game.input.keyboard.addKey(Phaser.Keyboard.UP),
@@ -61,11 +50,17 @@ window.onload = function () {
     }
 
 
-    function moveUser(playerName, x, y) {
+    function moveUser(playerName, x, y, rotation) {
 
         var user = users[playerName];
 
         if (player && (playerName !== player.name)) {
+            user.sprite.children.forEach(function (sprite) {
+                if(sprite.key !== 'jackBeardBody'){
+
+                    sprite.rotation = rotation;
+                }
+            });
             user.sprite.body.moves = false;
         }
 
@@ -105,7 +100,7 @@ window.onload = function () {
     function updateUserSprite(userData) {
         var user = users[userData.name];
         if (user) {
-            moveUser(userData.name, userData.x, userData.y);
+            moveUser(userData.name, userData.x, userData.y, userData.rotation);
         } else {
             users[userData.name] = user = {};
             user.name = userData.name;
@@ -143,7 +138,7 @@ window.onload = function () {
             user.sprite.addChild(head);
             user.sprite.addChild(frontArm);
 
-            user.facing = 1;
+            user.facing = userData.facing;
             user.health = 100;
 
             user.label = game.add.text(0, 0, user.name, textStyle);
@@ -154,7 +149,7 @@ window.onload = function () {
             // user.sprite.animations.add('jumpright', [18, 19, 20, 21, 22, 23, 24, 25], 7, false);
             // user.sprite.animations.add('jumpleft', [33, 32, 31, 30, 29, 28, 27, 26], 7, false);
 
-            moveUser(userData.name, userData.x, userData.y);
+            moveUser(userData.name, userData.x, userData.y, userData.rotation);
         }
         return user;
     }
@@ -237,7 +232,8 @@ window.onload = function () {
                     x: player.x,
                     y: player.y,
                     facing: player.facing,
-                    spriteType: player.spriteType
+                    spriteType: player.spriteType,
+                    rotation: player.sprite.children[0].rotation
                 });
             }
         });
@@ -262,7 +258,9 @@ window.onload = function () {
             name: player.name,
             x: player.x,
             y: player.y,
-            spriteType: player.spriteType
+            facing: player.facing,
+            spriteType: player.spriteType,
+            rotation: player.sprite.children[0].rotation
         });
 
         function sendPlayerMove() {
@@ -270,30 +268,24 @@ window.onload = function () {
                 x: player.sprite.x,
                 y: player.sprite.y,
                 facing: player.facing,
-                spriteType: player.spriteType
+                spriteType: player.spriteType,
+                rotation: player.sprite.children[0].rotation
             };
             socket.emit('move', playerPositionData);
         }
 
-        var playerOldPos = {
-            x: Infinity,
-            y: Infinity
-        };
         setInterval(function () {
-            if (Math.abs(playerOldPos.x - player.x) > 0 || Math.abs(playerOldPos.y - player.y) > 0) {
-                sendPlayerMove();
-            }
-            playerOldPos.x = player.x;
-            playerOldPos.y = player.y;
-        }, 10);
+            sendPlayerMove();
+        },
+        5);
+
     }
 
     function update() {
 
         var hitPlatform = game.physics.arcade.collide(users, layer);
         var angle = angleToPointer(player.sprite);
-        console.log(angle)
-        game.physics.arcade.collide(users);
+        // game.physics.arcade.collide(users);
         player.sprite.body.velocity.x = 0;
 
         if (keys.up.isDown && player.sprite.body.onFloor() && hitPlatform) {
@@ -301,33 +293,25 @@ window.onload = function () {
         }
 
         if (keys.right.isDown) {
-            player.sprite.scale.x = 1;
             player.sprite.body.velocity.x = moveSpeed;
-            player.facing = 1;
         }
 
         if (keys.left.isDown) {
-            player.sprite.scale.x = -1;
             player.sprite.body.velocity.x = -moveSpeed;
-            player.facing = -1;
         }
 
-        if (player.facing === 1 && angle > -0.8 && angle < 0.8) {
-            player.sprite.children.forEach(function (sprite) {
-                if(sprite.key !== 'jackBeardBody'){
-                    sprite.rotation = game.physics.arcade.angleToPointer(player.sprite);
+        player.sprite.children.forEach(function (sprite) {
+            if(sprite.key !== 'jackBeardBody'){
+                if (player.facing === 1 && angle > -1.2 && angle < 1.2) {
+                 sprite.rotation = game.physics.arcade.angleToPointer(player.sprite);
                 }
-            });
-        }
-        else if (player.facing === -1 && angle > Math.PI - 0.8 || angle < 0.8 - Math.PI) {
-            player.sprite.children.forEach(function (sprite) {
-                if(sprite.key !== 'jackBeardBody'){
+                else if (player.facing === -1 && angle > Math.PI - 1.2 || angle < 1.2 - Math.PI) {
                     sprite.rotation = Math.PI - game.physics.arcade.angleToPointer(player.sprite);
                 }
-            });
-        }
+            }
+        });
 
-        moveUser(player.name, player.sprite.x, player.sprite.y);
+        moveUser(player.name, player.sprite.x, player.sprite.y, player.sprite.children[0].rotation);
     }
 
     function render() {

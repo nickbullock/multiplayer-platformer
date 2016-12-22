@@ -1,6 +1,6 @@
 {
-  "name": "panswars",
-  "description": "panwars",
+  "name": "valhall.io",
+  "description": "valhall.io",
   "version": "1.0.0",
   "dependencies": {
     "connect": "3.0.1",
