@@ -2,7 +2,7 @@
  * Created by PYRO on 11.12.16.
  */
 
-var socket = socketCluster.connect();
+const socket = socketCluster.connect();
 
 window.onload = function () {
 
@@ -10,21 +10,21 @@ window.onload = function () {
     //  Although it will work fine with this tutorial, it's almost certainly not the most current version.
     //  Be sure to replace it with an updated version before you start experimenting with adding your own code.
 
-    var gameWidth = 1024, gameHeight = 768;
+    const gameWidth = 1024, gameHeight = 768;
 
-    var game = new Phaser.Game(gameWidth, gameHeight, Phaser.CANVAS, 'valhall.io', {
+    const game = new Phaser.Game(gameWidth, gameHeight, Phaser.CANVAS, 'valhall.io', {
         preload: preload,
         create: create,
         update: update,
         render: render
     });
 
-    var player;
-    var moveSpeed = 150;
+    let player, keys, backArm, body, head, frontArm, hook, hookDistance, hookExists, bg, map, layer, users;
+    const moveSpeed = 150;
 
     function getRandomColor(min) {
-        var max = 255;
-        var randomness = max - min;
+        const max = 255;
+        let randomness = max - min;
         return min + Math.round(Math.random() * randomness);
     }
 
@@ -48,13 +48,14 @@ window.onload = function () {
         game.load.spritesheet('weapon', '../assets/gunsall13.png', 65, 32);
         game.load.image('background', '../assets/bg-1920.jpg');
         game.load.image('bullet', '../assets/bullet1.png');
+        game.load.spritesheet('hook', '../assets/general/chain.png', 16, 26);
         game.load.spritesheet('boom', '../assets/explode.png', 128, 128);
     }
 
 
     function moveUser(playerName, x, y, rotation) {
 
-        var user = users[playerName];
+        let user = users[playerName];
 
         if (player && (playerName !== player.name)) {
             user.sprite.children.forEach(function (sprite) {
@@ -92,7 +93,7 @@ window.onload = function () {
     }
 
     function removeUserSprite(userData) {
-        var user = users[userData.name];
+        let user = users[userData.name];
         if (user) {
             user.sprite.destroy();
             user.label.destroy();
@@ -100,7 +101,7 @@ window.onload = function () {
     }
 
     function updateUserSprite(userData) {
-        var user = users[userData.name];
+        let user = users[userData.name];
         if (user) {
             moveUser(userData.name, userData.x, userData.y, userData.rotation);
         } else {
@@ -109,7 +110,7 @@ window.onload = function () {
 
             user.spriteType = userData.spriteType;
 
-            var textStyle = {
+            const textStyle = {
                 font: '16px Arial',
                 fill: '#ffffff',
                 align: 'center'
@@ -125,7 +126,7 @@ window.onload = function () {
             user.sprite.body.setSize(35, 75, 0, -20);
             user.sprite.anchor.setTo(0.5, 0.5);
 
-            backArm = game.add.sprite(0, 0, userData.spriteType + 'BackArm');
+            backArm = game.add.sprite(3, -3, userData.spriteType + 'BackArm');
             body = game.add.sprite(4, 15, userData.spriteType + 'Body');
             head = game.add.sprite(0, -15, userData.spriteType + 'Head');
             frontArm = game.add.sprite(0, 0, userData.spriteType + 'FrontArm');
@@ -156,22 +157,55 @@ window.onload = function () {
         return user;
     }
 
-    var resizeGame = function () {
-        game.scale.pageAlignVertically = true;
-        game.scale.pageAlignHorizontally = true;
-        // game.scale.setShowAll();
-        game.scale.refresh();
-    };
+    function angleToPointer(displayObject, pointer) {
+        pointer = pointer || game.input.activePointer;
+        let dx = pointer.worldX - displayObject.x;
+        let dy = pointer.worldY - displayObject.y;
+
+        return Math.atan2(dy, dx);
+    }
+
+    function shootHook() {
+        hook = game.add.sprite(player.x, player.y, 'hook', 3);
+        game.physics.arcade.enable(hook);
+        if(player.facing === 1){
+            hook.rotation = player.sprite.children[0].rotation + Math.PI/2;
+        }
+        else if (player.facing === -1){
+            hook.rotation = 3*Math.PI/2 - player.sprite.children[0].rotation;
+        }
+
+        game.physics.arcade.moveToPointer(hook, 1500);  //object, speed
+
+        return false;
+    }
+
+    function destroyHook() {
+        hook.kill();
+        // hookExists = false;
+    }
+
+    function hookCollision(hook, layer){
+        // if (hookExists == true) {return} else {  hookExists = true;}  //this is important because otherwise the collision callback would be fired more than once
+        hookDistance = game.physics.arcade.distanceBetween(player, hook);
+        console.log('hookCollision!')
+        hook.body.immovable = true;
+        hook.body.moves = false;
+
+        // createChainElement(0, Math.round(hookDistance / 20));
+    }
 
     function create() {
+
+        game.canvas.oncontextmenu = function (e) {
+            e.preventDefault();
+        };
 
         game.physics.startSystem(Phaser.Physics.ARCADE);
 
         game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
 
         game.scale.setMinMax(800, 600, 1920, 1080);
-
-        // resizeGame();
 
         game.stage.backgroundColor = '#000000';
         game.stage.disableVisibilityChange = true;
@@ -193,10 +227,9 @@ window.onload = function () {
         users.physicsBodyType = Phaser.Physics.ARCADE;
 
         // Generate a random name for the user.
-        var playerName = 'user-' + Math.round(Math.random() * 10000);
-        // var startingPos = getRandomPosition(20, 20);
-        var startingPos = {x: 50, y: 50};
-        var playerColor = Phaser.Color.getColor(getRandomColor(100), getRandomColor(100), getRandomColor(100));
+        const playerName = 'user-' + Math.round(Math.random() * 10000);
+        const startingPos = {x: 50, y: 50};
+        const playerColor = Phaser.Color.getColor(getRandomColor(100), getRandomColor(100), getRandomColor(100));
 
         player = updateUserSprite({
             name: playerName,
@@ -209,7 +242,7 @@ window.onload = function () {
 
         game.camera.follow(player.sprite);
 
-        var getUserPresenceChannelName = function (username) {
+        const getUserPresenceChannelName = function (username) {
             return 'user/' + username + '/presence-notification';
         };
 
@@ -259,14 +292,13 @@ window.onload = function () {
         });
 
         function sendPlayerMove() {
-            var playerPositionData = {
+            socket.emit('move', {
                 x: player.sprite.x,
                 y: player.sprite.y,
                 facing: player.facing,
                 spriteType: player.spriteType,
                 rotation: player.sprite.children[0].rotation
-            };
-            socket.emit('move', playerPositionData);
+            });
         }
 
         setInterval(function () {
@@ -274,22 +306,20 @@ window.onload = function () {
         },
         5);
 
-        function hook() {
-            console.log('hook')
-        }
-
+        keys.rmb.onDown.add(shootHook);
+        keys.rmb.onUp.add(destroyHook);
     }
 
     function update() {
 
-        var hitPlatform = game.physics.arcade.collide(users, layer);
-        var angle = angleToPointer(player.sprite);
+        const hitPlatform = game.physics.arcade.collide(users, layer);
+        if(hook){
+            game.physics.arcade.collide(hook, layer, hookCollision, null, this);
+        }
+
+        const angle = angleToPointer(player.sprite);
         // game.physics.arcade.collide(users);
         player.sprite.body.velocity.x = 0;
-
-        if(keys.rmb.isDown){
-            hook()
-        }
 
         if (keys.up.isDown && player.sprite.body.onFloor() && hitPlatform) {
             player.sprite.body.velocity.y = -400;
@@ -326,13 +356,4 @@ window.onload = function () {
         // game.debug.spriteBounds(head);
         // game.debug.spriteCorners(head, true, true);
     }
-
-   function angleToPointer(displayObject, pointer) {
-        pointer = pointer || game.input.activePointer;
-        var dx = pointer.worldX - displayObject.x;
-        var dy = pointer.worldY - displayObject.y;
-
-        return Math.atan2(dy, dx);
-    }
-
 };
