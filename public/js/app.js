@@ -19,8 +19,11 @@ window.onload = function () {
         render: render
     });
 
-    let player, keys, backArm, body, head, frontArm, hook, hookDistance, hookExists, bg, map, layer, users;
+    let player, keys, backArm, body, head, frontArm, hook, hookDistance, hookExists, bg, map, layer, users,
+        chainGroup, chainLength, groundCollisionGroup, playerCollisionGroup, groundMaterial, playerMaterial,
+        jumpTimer = 0;
     const moveSpeed = 150;
+
 
     function getRandomColor(min) {
         const max = 255;
@@ -64,7 +67,9 @@ window.onload = function () {
                     sprite.rotation = rotation;
                 }
             });
-            user.sprite.body.moves = false;
+            if(user.sprite.body){
+                user.sprite.body.static = true;
+            }
         }
 
         if (x > user.x) {
@@ -86,9 +91,11 @@ window.onload = function () {
                 user.sprite.frame = 0;
             }
         }
+        if(user.sprite.body){
+            user.x = user.sprite.body.x = x;
+            user.y = user.sprite.body.y = y;
+        }
 
-        user.x = user.sprite.x = x;
-        user.y = user.sprite.y = y;
         user.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
     }
 
@@ -118,13 +125,20 @@ window.onload = function () {
 
             user.color = userData.color;
             user.sprite = users.create(0, 0);
+            game.physics.p2.enable(user.sprite);
 
-            user.sprite.body.bounce.y = 0.1;
-            user.sprite.checkWorldBounds = true;
-            user.sprite.body.collideWorldBounds = true;
-            user.sprite.body.maxVelocity.y = 500;
-            user.sprite.body.setSize(35, 75, 0, -20);
+            // user.sprite.body.bounce.y = 0.1;
+            // user.sprite.checkWorldBounds = true;
+            // user.sprite.body.collideWorldBounds = true;
+            // user.sprite.body.maxVelocity.y = 500;
+            user.sprite.body.setRectangle(40, 75, 0, 0);
             user.sprite.anchor.setTo(0.5, 0.5);
+            user.sprite.body.fixedRotation = true;
+            user.sprite.body.damping = 0.5;
+            // user.sprite.body.mass = 5;
+            // user.sprite.body.data.gravityScale = 1;
+            user.sprite.body.setCollisionGroup(playerCollisionGroup);
+            user.sprite.body.collides([groundCollisionGroup]);
 
             backArm = game.add.sprite(3, -3, userData.spriteType + 'BackArm');
             body = game.add.sprite(4, 15, userData.spriteType + 'Body');
@@ -165,34 +179,26 @@ window.onload = function () {
         return Math.atan2(dy, dx);
     }
 
-    function shootHook() {
-        hook = game.add.sprite(player.x, player.y, 'hook', 3);
-        game.physics.arcade.enable(hook);
-        if(player.facing === 1){
-            hook.rotation = player.sprite.children[0].rotation + Math.PI/2;
+    function checkIfCanJump() {
+        let result = false;
+
+        for (let i=0; i < game.physics.p2.world.narrowphase.contactEquations.length; i++) {
+            let c = game.physics.p2.world.narrowphase.contactEquations[i];
+
+            if (c.bodyA === player.sprite.body.data || c.bodyB === player.sprite.body.data) {
+                let d = p2.vec2.dot(c.normalA, p2.vec2.fromValues(0, 1));
+
+                if (c.bodyA === player.sprite.body.data) {
+                    d *= -1;
+                }
+
+                if (d > 0.5) {
+                    result = true;
+                }
+            }
         }
-        else if (player.facing === -1){
-            hook.rotation = 3*Math.PI/2 - player.sprite.children[0].rotation;
-        }
 
-        game.physics.arcade.moveToPointer(hook, 1500);  //object, speed
-
-        return false;
-    }
-
-    function destroyHook() {
-        hook.kill();
-        // hookExists = false;
-    }
-
-    function hookCollision(hook, layer){
-        // if (hookExists == true) {return} else {  hookExists = true;}  //this is important because otherwise the collision callback would be fired more than once
-        hookDistance = game.physics.arcade.distanceBetween(player, hook);
-        console.log('hookCollision!')
-        hook.body.immovable = true;
-        hook.body.moves = false;
-
-        // createChainElement(0, Math.round(hookDistance / 20));
+        return result;
     }
 
     function create() {
@@ -201,10 +207,22 @@ window.onload = function () {
             e.preventDefault();
         };
 
-        game.physics.startSystem(Phaser.Physics.ARCADE);
+        game.physics.startSystem(Phaser.Physics.P2JS);
+        game.physics.p2.gravity.y = 1400;
+
+        playerCollisionGroup = game.physics.p2.createCollisionGroup();
+        groundCollisionGroup = game.physics.p2.createCollisionGroup();
+
+        groundMaterial = game.physics.p2.createMaterial();
+        playerMaterial = game.physics.p2.createMaterial();
+
+        game.physics.p2.setWorldMaterial(groundMaterial, true, true, true, true);
+        game.physics.p2.createContactMaterial(playerMaterial, groundMaterial, { friction: 0.0, restitution: 0.2 });
+        game.physics.p2.setImpactEvents(true);
+        game.physics.p2.world.defaultContactMaterial.friction = 0.3;
+        game.physics.p2.world.setGlobalStiffness(1e5);
 
         game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
-
         game.scale.setMinMax(800, 600, 1920, 1080);
 
         game.stage.backgroundColor = '#000000';
@@ -220,11 +238,19 @@ window.onload = function () {
         layer = map.createLayer('lvl2');
         layer.renderSettings.enableScrollDelta = false;
         layer.resizeWorld();
-        game.physics.arcade.gravity.y = 600;
+        game.physics.p2.setBoundsToWorld(true, true, true, true, true);
+
+        let layerTiles = game.physics.p2.convertTilemap(map, layer);
+
+        layerTiles.forEach(function(tile){
+            tile.setCollisionGroup(groundCollisionGroup);
+            tile.collides(playerCollisionGroup);
+            tile.setMaterial(groundMaterial);
+        });
 
         users = game.add.group();
         users.enableBody = true;
-        users.physicsBodyType = Phaser.Physics.ARCADE;
+        users.physicsBodyType = Phaser.Physics.P2JS;
 
         // Generate a random name for the user.
         const playerName = 'user-' + Math.round(Math.random() * 10000);
@@ -293,8 +319,8 @@ window.onload = function () {
 
         function sendPlayerMove() {
             socket.emit('move', {
-                x: player.sprite.x,
-                y: player.sprite.y,
+                x: player.sprite.body.x,
+                y: player.sprite.body.y,
                 facing: player.facing,
                 spriteType: player.spriteType,
                 rotation: player.sprite.children[0].rotation
@@ -306,31 +332,24 @@ window.onload = function () {
         },
         5);
 
-        keys.rmb.onDown.add(shootHook);
-        keys.rmb.onUp.add(destroyHook);
+        // keys.rmb.onDown.add(shootHook);
+        // keys.rmb.onUp.add(destroyHook);
     }
 
     function update() {
 
-        const hitPlatform = game.physics.arcade.collide(users, layer);
-        if(hook){
-            game.physics.arcade.collide(hook, layer, hookCollision, null, this);
-        }
-
         const angle = angleToPointer(player.sprite);
-        // game.physics.arcade.collide(users);
-        player.sprite.body.velocity.x = 0;
 
-        if (keys.up.isDown && player.sprite.body.onFloor() && hitPlatform) {
-            player.sprite.body.velocity.y = -400;
+        if (keys.up.isDown && checkIfCanJump() && game.time.now > jumpTimer) {
+            player.sprite.body.moveUp(700);
+            jumpTimer = game.time.now + 750;
         }
 
         if (keys.right.isDown) {
-            player.sprite.body.velocity.x = moveSpeed;
+            player.sprite.body.moveRight(moveSpeed);
         }
-
         if (keys.left.isDown) {
-            player.sprite.body.velocity.x = -moveSpeed;
+            player.sprite.body.moveLeft(moveSpeed)
         }
 
         player.sprite.children.forEach(function (sprite) {
@@ -344,16 +363,17 @@ window.onload = function () {
             }
         });
 
-        moveUser(player.name, player.sprite.x, player.sprite.y, player.sprite.children[0].rotation);
+        moveUser(player.name, player.sprite.body.x, player.sprite.body.y, player.sprite.children[0].rotation);
     }
 
     function render() {
         game.time.advancedTiming = true;
         game.debug.text(game.time.fps , 2, 14, "#00ff00");
-        // game.debug.bodyInfo(player.sprite, 32, 32);
-        // game.debug.body(player.sprite);
+        game.debug.body(player.sprite.body, 32, 32);
+        game.debug.bodyInfo(player.sprite.body, 32, 32);
+
         // game.debug.spriteInfo(player.sprite, 32, 32);
-        // game.debug.spriteBounds(head);
+        // game.debug.spriteBounds(player.sprite);
         // game.debug.spriteCorners(head, true, true);
     }
 };
