@@ -20,9 +20,9 @@ window.onload = function () {
     });
 
     let player, keys, backArm, body, head, frontArm, hook, hookDistance, hookExists, bg, map, layer, users,
-        chainGroup, chainLength, groundCollisionGroup, playerCollisionGroup, groundMaterial, playerMaterial,
-        jumpTimer = 0;
-    const moveSpeed = 150;
+        chainGroup, chainLength, groundCollisionGroup, playerCollisionGroup, hookCollisionGroup, groundMaterial,
+        playerMaterial, hookMaterial, jumpTimer = 0, hookTimer = 0;
+    const moveSpeed = 135;
 
 
     function getRandomColor(min) {
@@ -56,7 +56,7 @@ window.onload = function () {
     }
 
 
-    function moveUser(playerName, x, y, rotation) {
+    function moveUser(playerName, x, y, rotation, facing) {
 
         let user = users[playerName];
 
@@ -72,18 +72,17 @@ window.onload = function () {
             }
         }
 
-        if (x > user.x) {
+        if (facing === 1) {
             // user.sprite.animations.play('right')
-            user.facing = 1;
             user.sprite.scale.x = 1;
         }
-        else if (x < user.x) {
+        if (facing === -1) {
             // user.sprite.animations.play('left')
-            user.facing = -1;
             user.sprite.scale.x = -1;
         }
-        else {
-            user.sprite.animations.stop();
+
+        if(x === user.x) {
+            // user.sprite.animations.stop();
             if (user.facing === -1) {
                 user.sprite.frame = 17;
             }
@@ -91,6 +90,7 @@ window.onload = function () {
                 user.sprite.frame = 0;
             }
         }
+
         if(user.sprite.body){
             user.x = user.sprite.body.x = x;
             user.y = user.sprite.body.y = y;
@@ -110,7 +110,7 @@ window.onload = function () {
     function updateUserSprite(userData) {
         let user = users[userData.name];
         if (user) {
-            moveUser(userData.name, userData.x, userData.y, userData.rotation);
+            moveUser(userData.name, userData.x, userData.y, userData.rotation, userData.facing);
         } else {
             users[userData.name] = user = {};
             user.name = userData.name;
@@ -128,17 +128,17 @@ window.onload = function () {
             game.physics.p2.enable(user.sprite);
 
             // user.sprite.body.bounce.y = 0.1;
-            // user.sprite.checkWorldBounds = true;
-            // user.sprite.body.collideWorldBounds = true;
+            user.sprite.checkWorldBounds = true;
+            user.sprite.body.collideWorldBounds = true;
             // user.sprite.body.maxVelocity.y = 500;
             user.sprite.body.setRectangle(40, 75, 0, 0);
             user.sprite.anchor.setTo(0.5, 0.5);
             user.sprite.body.fixedRotation = true;
-            user.sprite.body.damping = 0.5;
-            // user.sprite.body.mass = 5;
+            user.sprite.body.mass = 5;
             // user.sprite.body.data.gravityScale = 1;
             user.sprite.body.setCollisionGroup(playerCollisionGroup);
-            user.sprite.body.collides([groundCollisionGroup]);
+            user.sprite.body.collides(groundCollisionGroup);
+            user.sprite.body.setMaterial(playerMaterial);
 
             backArm = game.add.sprite(3, -3, userData.spriteType + 'BackArm');
             body = game.add.sprite(4, 15, userData.spriteType + 'Body');
@@ -166,7 +166,7 @@ window.onload = function () {
             // user.sprite.animations.add('jumpright', [18, 19, 20, 21, 22, 23, 24, 25], 7, false);
             // user.sprite.animations.add('jumpleft', [33, 32, 31, 30, 29, 28, 27, 26], 7, false);
 
-            moveUser(userData.name, userData.x, userData.y, userData.rotation);
+            moveUser(userData.name, userData.x, userData.y, userData.rotation, user.facing);
         }
         return user;
     }
@@ -201,6 +201,35 @@ window.onload = function () {
         return result;
     }
 
+    function moveToPointer(obj1, speed) {
+        var angle = Math.atan2(game.camera.y + game.input.y - obj1.y,game.camera.x + game.input.x - obj1.x);
+        obj1.body.velocity.x = Math.cos(angle) * speed;
+        obj1.body.velocity.y = Math.sin(angle) * speed;
+    }
+
+    function shootHook() {
+        hook = game.add.sprite(player.sprite.body.x, player.sprite.body.y, 'hook',3);
+        let hookAngle = Math.atan2(game.camera.y + game.input.y - player.sprite.children[0].y,
+            game.camera.x + game.input.x - player.sprite.children[0].x);
+        game.physics.p2.enable(hook);
+        hookAngle = hookAngle * 180/Math.PI;
+        hook.body.angle = hookAngle;
+        hook.body.data.gravityScale = 0;
+        hook.body.setCollisionGroup(hookCollisionGroup);
+        hook.body.collides(groundCollisionGroup);
+        hook.body.setMaterial(hookMaterial);
+        hook.body.createGroupCallback(groundCollisionGroup, hookCollision, this);
+        // hook.body.onBeginContact.add(hookCollision);
+        moveToPointer(hook, 100);
+
+    }
+
+    function hookCollision(){
+        console.log('collision')
+        //
+        // hook.body.static = true;
+    }
+
     function create() {
 
         game.canvas.oncontextmenu = function (e) {
@@ -208,19 +237,28 @@ window.onload = function () {
         };
 
         game.physics.startSystem(Phaser.Physics.P2JS);
+
+        // game.physics.p2.setImpactEvents(true);
         game.physics.p2.gravity.y = 1400;
 
         playerCollisionGroup = game.physics.p2.createCollisionGroup();
         groundCollisionGroup = game.physics.p2.createCollisionGroup();
+        hookCollisionGroup = game.physics.p2.createCollisionGroup();
 
         groundMaterial = game.physics.p2.createMaterial();
         playerMaterial = game.physics.p2.createMaterial();
+        hookMaterial = game.physics.p2.createMaterial();
 
         game.physics.p2.setWorldMaterial(groundMaterial, true, true, true, true);
-        game.physics.p2.createContactMaterial(playerMaterial, groundMaterial, { friction: 0.0, restitution: 0.2 });
-        game.physics.p2.setImpactEvents(true);
+        game.physics.p2.createContactMaterial(playerMaterial, groundMaterial, {
+            friction: 0.5,
+            restitution: 0
+        });
+        game.physics.p2.createContactMaterial(hookMaterial, groundMaterial, {
+            friction: 0.3 , restitution: 0.6
+        });
+
         game.physics.p2.world.defaultContactMaterial.friction = 0.3;
-        game.physics.p2.world.setGlobalStiffness(1e5);
 
         game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
         game.scale.setMinMax(800, 600, 1920, 1080);
@@ -232,8 +270,9 @@ window.onload = function () {
         bg.fixedToCamera = true;
 
         map = game.add.tilemap('lvl2');
+        console.log(map)
         map.addTilesetImage('tiles-1');
-        map.setCollisionByExclusion([13, 14, 15, 16, 46, 47, 48, 49, 50, 51]);
+        map.setCollisionBetween(1,68,true,'lvl2')
 
         layer = map.createLayer('lvl2');
         layer.renderSettings.enableScrollDelta = false;
@@ -244,7 +283,7 @@ window.onload = function () {
 
         layerTiles.forEach(function(tile){
             tile.setCollisionGroup(groundCollisionGroup);
-            tile.collides(playerCollisionGroup);
+            tile.collides([playerCollisionGroup, hookCollisionGroup]);
             tile.setMaterial(groundMaterial);
         });
 
@@ -332,7 +371,7 @@ window.onload = function () {
         },
         5);
 
-        // keys.rmb.onDown.add(shootHook);
+        keys.rmb.onDown.add(shootHook);
         // keys.rmb.onUp.add(destroyHook);
     }
 
@@ -344,12 +383,13 @@ window.onload = function () {
             player.sprite.body.moveUp(700);
             jumpTimer = game.time.now + 750;
         }
-
         if (keys.right.isDown) {
             player.sprite.body.moveRight(moveSpeed);
+            player.facing = 1;
         }
         if (keys.left.isDown) {
-            player.sprite.body.moveLeft(moveSpeed)
+            player.sprite.body.moveLeft(moveSpeed);
+            player.facing = -1;
         }
 
         player.sprite.children.forEach(function (sprite) {
@@ -363,17 +403,16 @@ window.onload = function () {
             }
         });
 
-        moveUser(player.name, player.sprite.body.x, player.sprite.body.y, player.sprite.children[0].rotation);
+        moveUser(player.name, player.sprite.body.x, player.sprite.body.y, player.sprite.children[0].rotation, player.facing);
     }
 
     function render() {
-        game.time.advancedTiming = true;
-        game.debug.text(game.time.fps , 2, 14, "#00ff00");
-        game.debug.body(player.sprite.body, 32, 32);
-        game.debug.bodyInfo(player.sprite.body, 32, 32);
-
+        // game.time.advancedTiming = true;
+        // game.debug.text(game.time.fps , 2, 14, "#00ff00");
+        // game.debug.body(player.sprite.body, 32, 32);
+        // game.debug.bodyInfo(player.sprite.body, 32, 32);
+        //
         // game.debug.spriteInfo(player.sprite, 32, 32);
         // game.debug.spriteBounds(player.sprite);
-        // game.debug.spriteCorners(head, true, true);
     }
 };

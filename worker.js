@@ -49,6 +49,7 @@ module.exports.run = function (worker) {
         color: playerData.color,
         x: playerData.x,
         y: playerData.y,
+        facing: playerData.facing,
         spriteType: playerData.spriteType,
         rotation: playerData.rotation
       });
@@ -65,6 +66,7 @@ module.exports.run = function (worker) {
           color: playerToken.color,
           x: playerData.x,
           y: playerData.y,
+          facing: playerData.facing,
           spriteType: playerData.spriteType,
           rotation: playerData.rotation
         });
