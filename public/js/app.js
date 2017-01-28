@@ -201,35 +201,6 @@ window.onload = function () {
         return result;
     }
 
-    function moveToPointer(obj1, speed) {
-        var angle = Math.atan2(game.camera.y + game.input.y - obj1.y,game.camera.x + game.input.x - obj1.x);
-        obj1.body.velocity.x = Math.cos(angle) * speed;
-        obj1.body.velocity.y = Math.sin(angle) * speed;
-    }
-
-    function shootHook() {
-        hook = game.add.sprite(player.sprite.body.x, player.sprite.body.y, 'hook',3);
-        let hookAngle = Math.atan2(game.camera.y + game.input.y - player.sprite.children[0].y,
-            game.camera.x + game.input.x - player.sprite.children[0].x);
-        game.physics.p2.enable(hook);
-        hookAngle = hookAngle * 180/Math.PI;
-        hook.body.angle = hookAngle;
-        hook.body.data.gravityScale = 0;
-        hook.body.setCollisionGroup(hookCollisionGroup);
-        hook.body.collides(groundCollisionGroup);
-        hook.body.setMaterial(hookMaterial);
-        hook.body.createGroupCallback(groundCollisionGroup, hookCollision, this);
-        // hook.body.onBeginContact.add(hookCollision);
-        moveToPointer(hook, 100);
-
-    }
-
-    function hookCollision(){
-        console.log('collision')
-        //
-        // hook.body.static = true;
-    }
-
     function create() {
 
         game.canvas.oncontextmenu = function (e) {
@@ -270,7 +241,6 @@ window.onload = function () {
         bg.fixedToCamera = true;
 
         map = game.add.tilemap('lvl2');
-        console.log(map)
         map.addTilesetImage('tiles-1');
         map.setCollisionBetween(1,68,true,'lvl2')
 
@@ -370,9 +340,6 @@ window.onload = function () {
             sendPlayerMove();
         },
         5);
-
-        keys.rmb.onDown.add(shootHook);
-        // keys.rmb.onUp.add(destroyHook);
     }
 
     function update() {
