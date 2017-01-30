@@ -6,10 +6,6 @@ const socket = socketCluster.connect();
 
 window.onload = function () {
 
-    //  Note that this html file is set to pull down Phaser from our public/ directory.
-    //  Although it will work fine with this tutorial, it's almost certainly not the most current version.
-    //  Be sure to replace it with an updated version before you start experimenting with adding your own code.
-
     const gameWidth = 1024, gameHeight = 768;
 
     const game = new Phaser.Game(gameWidth, gameHeight, Phaser.CANVAS, 'valhall.io', {
@@ -19,9 +15,9 @@ window.onload = function () {
         render: render
     });
 
-    let player, keys, backArm, body, head, frontArm, hook, hookDistance, hookExists, bg, map, layer, users,
-        chainGroup, chainLength, groundCollisionGroup, playerCollisionGroup, hookCollisionGroup, groundMaterial,
-        playerMaterial, hookMaterial, jumpTimer = 0, hookTimer = 0;
+    let player, keys, backArm, body, head, frontArm, bg, map, layer, users, weapons,
+        groundCollisionGroup, playerCollisionGroup, weaponCollisionGroup, groundMaterial,
+        playerMaterial, weaponMaterial, jumpTimer = 0;
     const moveSpeed = 135;
 
 
@@ -38,7 +34,7 @@ window.onload = function () {
             right: game.input.keyboard.addKey(Phaser.Keyboard.RIGHT),
             left: game.input.keyboard.addKey(Phaser.Keyboard.LEFT),
             rmb: game.input.mousePointer.rightButton,
-            lmb: game.input.mousePointer.leftButton.isDown
+            lmb: game.input.mousePointer.leftButton
         };
         game.load.tilemap('lvl2', '../assets/lvl2.json', null, Phaser.Tilemap.TILED_JSON);
         game.load.image('tiles-1', '../assets/tiles-1.png');
@@ -49,9 +45,8 @@ window.onload = function () {
         game.load.spritesheet('jackBeardBackArm', '../assets/jack-beard/back-arm.png', 75, 75);
         game.load.spritesheet('dude2', '../assets/player6.png', 75, 73);
         game.load.spritesheet('weapon', '../assets/gunsall13.png', 65, 32);
-        game.load.image('background', '../assets/bg-1920.jpg');
+        game.load.image('background', '../assets/bg123.png');
         game.load.image('bullet', '../assets/bullet1.png');
-        game.load.spritesheet('hook', '../assets/general/chain.png', 16, 26);
         game.load.spritesheet('boom', '../assets/explode.png', 128, 128);
     }
 
@@ -137,7 +132,7 @@ window.onload = function () {
             user.sprite.body.mass = 5;
             // user.sprite.body.data.gravityScale = 1;
             user.sprite.body.setCollisionGroup(playerCollisionGroup);
-            user.sprite.body.collides(groundCollisionGroup);
+            user.sprite.body.collides([playerCollisionGroup, groundCollisionGroup, weaponCollisionGroup]);
             user.sprite.body.setMaterial(playerMaterial);
 
             backArm = game.add.sprite(3, -3, userData.spriteType + 'BackArm');
@@ -201,6 +196,27 @@ window.onload = function () {
         return result;
     }
 
+    function getUserPresenceChannelName(username) {
+        return 'user/' + username + '/presence-notification';
+    }
+
+    function gunCollisionCallback(weapon, user) {
+        weapon.sprite.kill();
+
+        let wpn = weapons.create(10, -5, 'weapon', weapon.sprite._frame.index);
+        wpn.scale.setTo(0.8, 0.8);
+        wpn.anchor.setTo(0.5, 0.5);
+
+        user.sprite.children[0].addChild(wpn);
+
+        user.weapon = game.add.weapon(30, 'bullet');
+        user.weapon.bulletKillType = Phaser.Weapon.KILL_WORLD_BOUNDS;
+        user.weapon.bulletSpeed = 600;
+        user.weapon.fireRate = 50;
+        user.weapon.bulletAngleVariance = 7;
+        user.weapon.trackSprite(user.sprite.children[0], 40, -3, true);
+    }
+
     function create() {
 
         game.canvas.oncontextmenu = function (e) {
@@ -209,24 +225,29 @@ window.onload = function () {
 
         game.physics.startSystem(Phaser.Physics.P2JS);
 
-        // game.physics.p2.setImpactEvents(true);
+        game.physics.p2.setImpactEvents(true);
         game.physics.p2.gravity.y = 1400;
 
         playerCollisionGroup = game.physics.p2.createCollisionGroup();
+        weaponCollisionGroup = game.physics.p2.createCollisionGroup();
         groundCollisionGroup = game.physics.p2.createCollisionGroup();
-        hookCollisionGroup = game.physics.p2.createCollisionGroup();
 
         groundMaterial = game.physics.p2.createMaterial();
         playerMaterial = game.physics.p2.createMaterial();
-        hookMaterial = game.physics.p2.createMaterial();
+        weaponMaterial = game.physics.p2.createMaterial();
 
         game.physics.p2.setWorldMaterial(groundMaterial, true, true, true, true);
         game.physics.p2.createContactMaterial(playerMaterial, groundMaterial, {
             friction: 0.5,
             restitution: 0
         });
-        game.physics.p2.createContactMaterial(hookMaterial, groundMaterial, {
-            friction: 0.3 , restitution: 0.6
+        // game.physics.p2.createContactMaterial(weaponMaterial, groundMaterial, {
+        //     friction: 0.5,
+        //     restitution: 0
+        // });
+        game.physics.p2.createContactMaterial(weaponMaterial, playerMaterial, {
+            friction: 1,
+            restitution: 0
         });
 
         game.physics.p2.world.defaultContactMaterial.friction = 0.3;
@@ -253,17 +274,16 @@ window.onload = function () {
 
         layerTiles.forEach(function(tile){
             tile.setCollisionGroup(groundCollisionGroup);
-            tile.collides([playerCollisionGroup, hookCollisionGroup]);
+            tile.collides([playerCollisionGroup, weaponCollisionGroup]);
             tile.setMaterial(groundMaterial);
         });
 
         users = game.add.group();
-        users.enableBody = true;
-        users.physicsBodyType = Phaser.Physics.P2JS;
+        weapons = game.add.group();
 
         // Generate a random name for the user.
         const playerName = 'user-' + Math.round(Math.random() * 10000);
-        const startingPos = {x: 50, y: 50};
+        const startingPos = {x: 150, y: 100};
         const playerColor = Phaser.Color.getColor(getRandomColor(100), getRandomColor(100), getRandomColor(100));
 
         player = updateUserSprite({
@@ -277,11 +297,24 @@ window.onload = function () {
 
         game.camera.follow(player.sprite);
 
-        const getUserPresenceChannelName = function (username) {
-            return 'user/' + username + '/presence-notification';
-        };
+        weapons.create(200, 200, 'weapon', 17);
 
-        // Setup a channel to allow other existing users to tell us about their presence (in case they joined before us).
+        weapons.children.forEach(function(weapon){
+            game.physics.p2.enable(weapon);
+
+            weapon.checkWorldBounds = true;
+            weapon.body.collideWorldBounds = true;
+            // weapon.body.setRectangle(40, 75, 0, 0);
+            weapon.anchor.setTo(0.5, 0.5);
+            // weapon.body.fixedRotation = true;
+            weapon.body.mass = 2;
+            weapon.body.setCollisionGroup(weaponCollisionGroup);
+            weapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
+            weapon.body.setMaterial(weaponMaterial);
+            weapon.body.createGroupCallback(playerCollisionGroup, gunCollisionCallback);
+
+        });
+
         socket.subscribe(getUserPresenceChannelName(playerName)).watch(function (userData) {
             updateUserSprite(userData);
         });
@@ -289,7 +322,6 @@ window.onload = function () {
         socket.subscribe('player-join').watch(function (userData) {
             if (player && userData.name != player.name) {
                 updateUserSprite(userData);
-                // Tell the newly joined user about our presence by publishing to their presence-notification channel.
                 socket.publish(getUserPresenceChannelName(userData.name), {
                     name: player.name,
                     x: player.x,
@@ -357,6 +389,9 @@ window.onload = function () {
         if (keys.left.isDown) {
             player.sprite.body.moveLeft(moveSpeed);
             player.facing = -1;
+        }
+        if (keys.lmb.isDown) {
+            player.sprite.body.weapon.fire();
         }
 
         player.sprite.children.forEach(function (sprite) {
