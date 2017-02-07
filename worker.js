@@ -2,7 +2,6 @@ var fs = require('fs');
 var express = require('express');
 var serveStatic = require('serve-static');
 var path = require('path');
-var express = require('express');
 var morgan = require('morgan');
 var healthChecker = require('sc-framework-health-check');
 
@@ -39,6 +38,7 @@ module.exports.run = function (worker) {
    */
   scServer.on('connection', function (socket) {
     socket.on('join', function (playerData) {
+      console.log("JOIN", playerData)
       // Create an auth token to track this player
       socket.setAuthToken({
         name: playerData.name,
@@ -51,7 +51,8 @@ module.exports.run = function (worker) {
         y: playerData.y,
         facing: playerData.facing,
         spriteType: playerData.spriteType,
-        rotation: playerData.rotation
+        rotation: playerData.rotation,
+        weaponPositions: playerData.weaponPositions
       });
     });
     socket.on('move', function (playerData) {
@@ -80,7 +81,7 @@ module.exports.run = function (worker) {
 
       if (playerToken) {
         scServer.exchange.publish('player-leave', {
-          name: playerToken.name
+          name: playerToken.name,
         });
       }
     });
