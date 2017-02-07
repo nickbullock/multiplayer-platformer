@@ -371,7 +371,7 @@ window.onload = function () {
         setInterval(function () {
             sendPlayerMove();
         },
-        5);
+        10);
     }
 
     function update() {

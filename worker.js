@@ -38,7 +38,6 @@ module.exports.run = function (worker) {
    */
   scServer.on('connection', function (socket) {
     socket.on('join', function (playerData) {
-      console.log("JOIN", playerData)
       // Create an auth token to track this player
       socket.setAuthToken({
         name: playerData.name,
@@ -72,7 +71,7 @@ module.exports.run = function (worker) {
           rotation: playerData.rotation
         });
         if (!positionFlushTimeout) {
-          positionFlushTimeout = setTimeout(flushPlayerPositions, 30);
+          positionFlushTimeout = setTimeout(flushPlayerPositions, 10);
         }
       }
     });
