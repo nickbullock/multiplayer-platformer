@@ -18,6 +18,7 @@ window.onload = function () {
         groundCollisionGroup, playerCollisionGroup, weaponCollisionGroup, bulletCollisionGroup, groundMaterial,
         playerMaterial, weaponMaterial, bulletMaterial, jumpTimer = 0, newWeaponPositions;
     const moveSpeed = 135;
+    const globalPlayerName = 'user-' + Math.round(Math.random() * 10000);
 
     function preload() {
         keys = {
@@ -42,33 +43,84 @@ window.onload = function () {
         game.load.spritesheet('boom', '../assets/explode.png', 128, 128);
     }
 
+    function createUser (user, userData) {
+        users[userData.name] = user = {};
+        user.name = userData.name;
 
-    function moveUser(playerName, x, y, rotation, facing) {
+        user.spriteType = userData.spriteType;
 
-        let user = users[playerName];
+        const textStyle = {
+            font: '16px Arial',
+            fill: '#ffffff',
+            align: 'center'
+        };
 
-        if (player && (playerName !== player.name)) {
-            user.sprite.children.forEach(function (sprite) {
-                if(sprite.key !== 'jackBeardBody'){
+        user.color = userData.color;
+        user.sprite = users.create(0, 0);
+        game.physics.p2.enable(user.sprite);
 
-                    sprite.rotation = rotation;
-                }
-            });
-            if(user.sprite.body){
-                user.sprite.body.static = true;
+        user.sprite.checkWorldBounds = true;
+        user.sprite.body.collideWorldBounds = true;
+        user.sprite.body.setRectangle(40, 75, 0, 0);
+        user.sprite.anchor.setTo(0.5, 0.5);
+        user.sprite.body.fixedRotation = true;
+        user.sprite.body.mass = 5;
+        user.sprite.body.setCollisionGroup(playerCollisionGroup);
+        user.sprite.body.collides([playerCollisionGroup, groundCollisionGroup, weaponCollisionGroup]);
+        user.sprite.body.setMaterial(playerMaterial);
+
+        backArm = game.add.sprite(3, -3, userData.spriteType + 'BackArm');
+        body = game.add.sprite(4, 15, userData.spriteType + 'Body');
+        head = game.add.sprite(0, -15, userData.spriteType + 'Head');
+        frontArm = game.add.sprite(0, 0, userData.spriteType + 'FrontArm');
+
+        backArm.anchor.setTo(0.4, 0.5);
+        frontArm.anchor.setTo(0.4, 0.5);
+        body.anchor.setTo(0.5, 0.5);
+        head.anchor.setTo(0.5, 0.51);
+
+        user.sprite.addChild(backArm);
+        user.sprite.addChild(body);
+        user.sprite.addChild(head);
+        user.sprite.addChild(frontArm);
+
+        user.facing = userData.facing;
+        user.health = 100;
+
+        user.label = game.add.text(0, 0, user.name, textStyle);
+        user.label.anchor.set(0.5);
+
+        // user.sprite.animations.add('left', [8, 7, 6, 5, 4, 3, 2, 1], 10, true);
+        // user.sprite.animations.add('right', [9, 10, 11, 12, 13, 14, 15, 16], 10, true);
+        // user.sprite.animations.add('jumpright', [18, 19, 20, 21, 22, 23, 24, 25], 7, false);
+        // user.sprite.animations.add('jumpleft', [33, 32, 31, 30, 29, 28, 27, 26], 7, false);
+
+        updateUser(userData);
+
+        return user;
+    }
+
+    function updateUser(userData) {
+        let user = users[userData.name];
+
+        user.sprite.children.forEach(function (sprite) {
+            if(sprite.key !== 'jackBeardBody'){
+
+                sprite.rotation = userData.rotation;
             }
+        });
+        if(user.sprite.body && userData.name !==  globalPlayerName){
+            user.sprite.body.static = true;
         }
-
-        if (facing === 1) {
+        if (userData.facing === 1) {
             // user.sprite.animations.play('right')
             user.sprite.scale.x = 1;
         }
-        if (facing === -1) {
+        if (userData.facing === -1) {
             // user.sprite.animations.play('left')
             user.sprite.scale.x = -1;
         }
-
-        if(x === user.x) {
+        if(userData.x === user.x) {
             // user.sprite.animations.stop();
             if (user.facing === -1) {
                 user.sprite.frame = 17;
@@ -77,13 +129,14 @@ window.onload = function () {
                 user.sprite.frame = 0;
             }
         }
-
         if(user.sprite.body){
-            user.x = user.sprite.body.x = x;
-            user.y = user.sprite.body.y = y;
+            user.x = user.sprite.body.x = userData.x;
+            user.y = user.sprite.body.y = userData.y;
         }
 
         user.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
+
+        return user;
     }
 
     function removeUserSprite(userData) {
@@ -94,68 +147,10 @@ window.onload = function () {
         }
     }
 
-    function updateUserSprite(userData) {
+    function userSpriteHandler(userData) {
         let user = users[userData.name];
-        if (user) {
-            moveUser(userData.name, userData.x, userData.y, userData.rotation, userData.facing);
-        } else {
-            users[userData.name] = user = {};
-            user.name = userData.name;
 
-            user.spriteType = userData.spriteType;
-
-            const textStyle = {
-                font: '16px Arial',
-                fill: '#ffffff',
-                align: 'center'
-            };
-
-            user.color = userData.color;
-            user.sprite = users.create(0, 0);
-            game.physics.p2.enable(user.sprite);
-
-            // user.sprite.body.bounce.y = 0.1;
-            user.sprite.checkWorldBounds = true;
-            user.sprite.body.collideWorldBounds = true;
-            // user.sprite.body.maxVelocity.y = 500;
-            user.sprite.body.setRectangle(40, 75, 0, 0);
-            user.sprite.anchor.setTo(0.5, 0.5);
-            user.sprite.body.fixedRotation = true;
-            user.sprite.body.mass = 5;
-            // user.sprite.body.data.gravityScale = 1;
-            user.sprite.body.setCollisionGroup(playerCollisionGroup);
-            user.sprite.body.collides([playerCollisionGroup, groundCollisionGroup, weaponCollisionGroup]);
-            user.sprite.body.setMaterial(playerMaterial);
-
-            backArm = game.add.sprite(3, -3, userData.spriteType + 'BackArm');
-            body = game.add.sprite(4, 15, userData.spriteType + 'Body');
-            head = game.add.sprite(0, -15, userData.spriteType + 'Head');
-            frontArm = game.add.sprite(0, 0, userData.spriteType + 'FrontArm');
-
-            backArm.anchor.setTo(0.4, 0.5);
-            frontArm.anchor.setTo(0.4, 0.5);
-            body.anchor.setTo(0.5, 0.5);
-            head.anchor.setTo(0.5, 0.51);
-
-            user.sprite.addChild(backArm);
-            user.sprite.addChild(body);
-            user.sprite.addChild(head);
-            user.sprite.addChild(frontArm);
-
-            user.facing = userData.facing;
-            user.health = 100;
-
-            user.label = game.add.text(0, 0, user.name, textStyle);
-            user.label.anchor.set(0.5);
-
-            // user.sprite.animations.add('left', [8, 7, 6, 5, 4, 3, 2, 1], 10, true);
-            // user.sprite.animations.add('right', [9, 10, 11, 12, 13, 14, 15, 16], 10, true);
-            // user.sprite.animations.add('jumpright', [18, 19, 20, 21, 22, 23, 24, 25], 7, false);
-            // user.sprite.animations.add('jumpleft', [33, 32, 31, 30, 29, 28, 27, 26], 7, false);
-
-            moveUser(userData.name, userData.x, userData.y, userData.rotation, user.facing);
-        }
-        return user;
+        return user ? updateUser(userData) : createUser(user, userData);
     }
 
     function angleToPointer(displayObject, pointer) {
@@ -193,7 +188,6 @@ window.onload = function () {
     }
 
     function gunCollisionCallback(weapon, user) {
-        console.log(arguments)
         weapon.sprite.kill();
 
         let wpn = weapons.create(10, -5, 'weapon', weapon.sprite._frame.index);
@@ -281,27 +275,25 @@ window.onload = function () {
         weapons = game.add.group();
         bullets = game.add.group();
 
-
-        const playerName = 'user-' + Math.round(Math.random() * 10000);
-        const startingPos = {x: 150, y: 100};
-
-        player = updateUserSprite({
-            name: playerName,
-            x: startingPos.x,
-            y: startingPos.y,
+        const localPlayerData = {
+            name: globalPlayerName,
+            x: 150,
+            y: 100,
             facing: 1,
             spriteType: 'jackBeard'
-        });
+        };
+
+        player = userSpriteHandler(localPlayerData);
 
         game.camera.follow(player.sprite);
 
-        socket.subscribe(getUserPresenceChannelName(playerName)).watch(function (userData) {
+        socket.subscribe(getUserPresenceChannelName(localPlayerData.name)).watch(function (userData) {
             newWeaponPositions = userData.weaponPositions;
 
             if(newWeaponPositions) {
                 rifle.reset(newWeaponPositions.rifleX, newWeaponPositions.rifleY);
             }
-            updateUserSprite(userData);
+            userSpriteHandler(userData);
         });
 
         rifle = weapons.create(200, 200, 'weapon', 17);
@@ -324,11 +316,10 @@ window.onload = function () {
         });
 
         socket.subscribe('player-join').watch(function (userData) {
-            if(userData)
-            if (player && userData.name != player.name) {
-                updateUserSprite(userData);
+            if (userData && player && userData.name != globalPlayerName) {
+                userSpriteHandler(userData);
                 socket.publish(getUserPresenceChannelName(userData.name), {
-                    name: player.name,
+                    name: globalPlayerName,
                     x: player.x,
                     y: player.y,
                     facing: player.facing,
@@ -343,8 +334,7 @@ window.onload = function () {
         });
 
         socket.subscribe('player-leave').watch(function (userData) {
-            console.log("player-leave", userData)
-            if (player && userData.name != player.name) {
+            if (player && userData.name !== globalPlayerName) {
                 removeUserSprite(userData);
             }
         });
@@ -352,15 +342,15 @@ window.onload = function () {
         socket.subscribe('player-positions').watch(function (userDataList) {
             if (player) {
                 userDataList.forEach(function (userData) {
-                    if (userData.name != player.name) {
-                        updateUserSprite(userData);
+                    if (userData.name != globalPlayerName) {
+                        userSpriteHandler(userData);
                     }
                 });
             }
         });
 
         socket.emit('join', {
-            name: player.name,
+            name: globalPlayerName,
             x: player.x,
             y: player.y,
             facing: player.facing,

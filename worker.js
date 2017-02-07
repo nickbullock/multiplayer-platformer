@@ -72,7 +72,7 @@ module.exports.run = function (worker) {
           rotation: playerData.rotation
         });
         if (!positionFlushTimeout) {
-          positionFlushTimeout = setTimeout(flushPlayerPositions, 8);
+          positionFlushTimeout = setTimeout(flushPlayerPositions, 30);
         }
       }
     });
@@ -81,7 +81,7 @@ module.exports.run = function (worker) {
 
       if (playerToken) {
         scServer.exchange.publish('player-leave', {
-          name: playerToken.name,
+          name: playerToken.name
         });
       }
     });
