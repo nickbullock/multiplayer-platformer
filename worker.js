@@ -50,8 +50,7 @@ module.exports.run = function (worker) {
         y: playerData.y,
         facing: playerData.facing,
         spriteType: playerData.spriteType,
-        rotation: playerData.rotation,
-        weaponPositions: playerData.weaponPositions
+        rotation: playerData.rotation
       });
     });
     socket.on('move', function (playerData) {

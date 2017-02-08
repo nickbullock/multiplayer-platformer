@@ -105,7 +105,6 @@ window.onload = function () {
 
         user.sprite.children.forEach(function (sprite) {
             if(sprite.key !== 'jackBeardBody'){
-
                 sprite.rotation = userData.rotation;
             }
         });
@@ -130,6 +129,7 @@ window.onload = function () {
             }
         }
         if(user.sprite.body){
+            // moveToPoint(user.sprite, {0: userData.x, 1: userData.y}, moveSpeed);
             user.x = user.sprite.body.x = userData.x;
             user.y = user.sprite.body.y = userData.y;
         }
@@ -212,6 +212,12 @@ window.onload = function () {
     //
     // }
 
+    // function moveToPoint(obj, point, speed) {
+    //     var angle = Math.atan2(point[1] - obj.y, point[0] - obj.x);
+    //     obj.body.velocity.x = Math.cos(angle) * speed;
+    //     obj.body.velocity.y = Math.sin(angle) * speed;
+    // }
+
     function create() {
 
         game.canvas.oncontextmenu = function (e) {
@@ -287,49 +293,62 @@ window.onload = function () {
 
         game.camera.follow(player.sprite);
 
-        socket.subscribe(getUserPresenceChannelName(localPlayerData.name)).watch(function (userData) {
-            newWeaponPositions = userData.weaponPositions;
+        for(let key in mapService.forest.weapons){
+            weapons.create(mapService.forest.weapons[key].x, mapService.forest.weapons[key].y, 'weapon', mapService.forest.weapons[key].frame);
+        }
 
-            if(newWeaponPositions) {
-                rifle.reset(newWeaponPositions.rifleX, newWeaponPositions.rifleY);
-            }
+        socket.subscribe(getUserPresenceChannelName(localPlayerData.name)).watch(function (userData) {
+            console.log("second user get weapons pos", userData)
+            weapons.children.forEach(function(localWeapon){
+                userData.weapons.forEach(function(weaponFromSever){
+                    if(localWeapon._frame.index === weaponFromSever.index){
+                        console.log("reseted", localWeapon)
+                        localWeapon.reset(weaponFromSever.x, weaponFromSever.y);
+                    }
+                })
+            });
+
             userSpriteHandler(userData);
         });
 
-        rifle = weapons.create(200, 200, 'weapon', 17);
-
-
         weapons.children.forEach(function(weapon){
             game.physics.p2.enable(weapon);
-
             weapon.checkWorldBounds = true;
             weapon.body.collideWorldBounds = true;
-            // weapon.body.setRectangle(40, 75, 0, 0);
             weapon.anchor.setTo(0.5, 0.5);
-            // weapon.body.fixedRotation = true;
             weapon.body.mass = 2;
             weapon.body.setCollisionGroup(weaponCollisionGroup);
             weapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
             weapon.body.setMaterial(weaponMaterial);
             weapon.body.createGroupCallback(playerCollisionGroup, gunCollisionCallback);
-
         });
+
+        setInterval(function(){
+            console.log(weapons.children[0].x, weapons.children[0].y, player)
+        },5000)
 
         socket.subscribe('player-join').watch(function (userData) {
             if (userData && player && userData.name != globalPlayerName) {
                 userSpriteHandler(userData);
-                socket.publish(getUserPresenceChannelName(userData.name), {
+                const dataToPublish = {
                     name: globalPlayerName,
                     x: player.x,
                     y: player.y,
                     facing: player.facing,
                     spriteType: player.spriteType,
                     rotation: player.sprite.children[0].rotation,
-                    weaponPositions: {
-                        rifleX: rifle.x,
-                        rifleY: rifle.y
-                    }
-                });
+                    weapons: weapons.children.map(function(weapon){
+                        return {
+                            index: weapon._frame.index,
+                            x: weapon.x,
+                            y: weapon.y
+                        }
+                    })
+                };
+
+                console.log('another player joined and will got my data', dataToPublish)
+
+                socket.publish(getUserPresenceChannelName(userData.name), dataToPublish);
             }
         });
 
