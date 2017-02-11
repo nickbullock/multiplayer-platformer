@@ -43,6 +43,16 @@ window.onload = function () {
         game.load.spritesheet('boom', '../assets/explode.png', 128, 128);
     }
 
+    function guid() {
+        function s4() {
+            return Math.floor((1 + Math.random()) * 0x10000)
+                .toString(16)
+                .substring(1);
+        }
+        return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+            s4() + '-' + s4() + s4() + s4();
+    }
+
     function createUser (user, userData) {
         users[userData.name] = user = {};
         user.name = userData.name;
@@ -142,6 +152,10 @@ window.onload = function () {
     function removeUserSprite(userData) {
         let user = users[userData.name];
         if (user) {
+            console.log("removing user", user)
+            if(user.sprite.body && user.sprite.body.weapon){
+                dropWeapon(userData);
+            }
             user.sprite.destroy();
             user.label.destroy();
         }
@@ -187,15 +201,40 @@ window.onload = function () {
         return 'user/' + username + '/presence-notification';
     }
 
-    function gunCollisionCallback(weapon, user) {
+    function getWeapon(weapon, user) {
         weapon.sprite.kill();
 
         let wpn = weapons.create(10, -5, 'weapon', weapon.sprite._frame.index);
+        wpn.guid = weapon.sprite.guid;
         wpn.scale.setTo(0.8, 0.8);
         wpn.anchor.setTo(0.5, 0.5);
 
         user.weapon = user.sprite.children[0].addChild(wpn);
     }
+
+    function dropWeapon(userData) {
+        let user = users[userData.name];
+        let oldWeapon = user.sprite.body.weapon;
+        let newWeapon = weapons.create(user.sprite.x, user.sprite.y, 'weapon', oldWeapon._frame.index);
+
+        console.log(oldWeapon)
+
+        newWeapon.guid = oldWeapon.guid;
+        game.physics.p2.enable(newWeapon);
+        newWeapon.checkWorldBounds = true;
+        newWeapon.body.collideWorldBounds = true;
+        newWeapon.anchor.setTo(0.5, 0.5);
+        newWeapon.body.mass = 2;
+        newWeapon.body.setCollisionGroup(weaponCollisionGroup);
+        newWeapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
+        newWeapon.body.setMaterial(weaponMaterial);
+        newWeapon.body.createGroupCallback(playerCollisionGroup, getWeapon);
+    }
+
+    // setInterval(function(){
+    //     console.log(weapons.children[0].x, weapons.children[0].y)
+    //     console.log(player.sprite.x, player.sprite.y)
+    // },5000)
 
     // function fire(fireRate) {
     //
@@ -298,11 +337,9 @@ window.onload = function () {
         }
 
         socket.subscribe(getUserPresenceChannelName(localPlayerData.name)).watch(function (userData) {
-            console.log("second user get weapons pos", userData)
             weapons.children.forEach(function(localWeapon){
                 userData.weapons.forEach(function(weaponFromSever){
                     if(localWeapon._frame.index === weaponFromSever.index){
-                        console.log("reseted", localWeapon)
                         localWeapon.reset(weaponFromSever.x, weaponFromSever.y);
                     }
                 })
@@ -312,6 +349,7 @@ window.onload = function () {
         });
 
         weapons.children.forEach(function(weapon){
+            weapon.guid = guid();
             game.physics.p2.enable(weapon);
             weapon.checkWorldBounds = true;
             weapon.body.collideWorldBounds = true;
@@ -320,12 +358,8 @@ window.onload = function () {
             weapon.body.setCollisionGroup(weaponCollisionGroup);
             weapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
             weapon.body.setMaterial(weaponMaterial);
-            weapon.body.createGroupCallback(playerCollisionGroup, gunCollisionCallback);
+            weapon.body.createGroupCallback(playerCollisionGroup, getWeapon);
         });
-
-        setInterval(function(){
-            console.log(weapons.children[0].x, weapons.children[0].y, player)
-        },5000)
 
         socket.subscribe('player-join').watch(function (userData) {
             if (userData && player && userData.name != globalPlayerName) {
@@ -340,13 +374,13 @@ window.onload = function () {
                     weapons: weapons.children.map(function(weapon){
                         return {
                             index: weapon._frame.index,
-                            x: weapon.x,
-                            y: weapon.y
+                            x: player.sprite.body.weapon && (weapon.guid === player.sprite.body.weapon.guid) ? player.sprite.x : weapon.x,
+                            y: player.sprite.body.weapon && (weapon.guid === player.sprite.body.weapon.guid) ? player.sprite.y : weapon.y
                         }
                     })
                 };
 
-                console.log('another player joined and will got my data', dataToPublish)
+                console.log('another player joined and will got my data', dataToPublish);
 
                 socket.publish(getUserPresenceChannelName(userData.name), dataToPublish);
             }
