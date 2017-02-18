@@ -16,7 +16,7 @@ window.onload = function () {
 
     let player, keys, backArm, body, head, frontArm, bg, map, layer, users, weapons, bullets,
         groundCollisionGroup, playerCollisionGroup, weaponCollisionGroup, bulletCollisionGroup, groundMaterial,
-        playerMaterial, weaponMaterial, bulletMaterial, jumpTimer = 0, newWeaponPositions;
+        playerMaterial, weaponMaterial, bulletMaterial, jumpTimer = 0, nextFire = 0;
     const moveSpeed = 135;
     const globalPlayerName = 'user-' + Math.round(Math.random() * 10000);
 
@@ -43,6 +43,16 @@ window.onload = function () {
         game.load.spritesheet('boom', '../assets/explode.png', 128, 128);
     }
 
+    function guid() {
+        function s4() {
+            return Math.floor((1 + Math.random()) * 0x10000)
+                .toString(16)
+                .substring(1);
+        }
+        return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+            s4() + '-' + s4() + s4() + s4();
+    }
+
     function createUser (user, userData) {
         users[userData.name] = user = {};
         user.name = userData.name;
@@ -66,7 +76,7 @@ window.onload = function () {
         user.sprite.body.fixedRotation = true;
         user.sprite.body.mass = 5;
         user.sprite.body.setCollisionGroup(playerCollisionGroup);
-        user.sprite.body.collides([playerCollisionGroup, groundCollisionGroup, weaponCollisionGroup]);
+        user.sprite.body.collides([playerCollisionGroup, groundCollisionGroup, weaponCollisionGroup, bulletCollisionGroup]);
         user.sprite.body.setMaterial(playerMaterial);
 
         backArm = game.add.sprite(3, -3, userData.spriteType + 'BackArm');
@@ -105,7 +115,6 @@ window.onload = function () {
 
         user.sprite.children.forEach(function (sprite) {
             if(sprite.key !== 'jackBeardBody'){
-
                 sprite.rotation = userData.rotation;
             }
         });
@@ -142,6 +151,9 @@ window.onload = function () {
     function removeUserSprite(userData) {
         let user = users[userData.name];
         if (user) {
+            if(user.sprite.body && user.sprite.body.weapon){
+                dropWeapon(userData);
+            }
             user.sprite.destroy();
             user.label.destroy();
         }
@@ -187,36 +199,72 @@ window.onload = function () {
         return 'user/' + username + '/presence-notification';
     }
 
-    function gunCollisionCallback(weapon, user) {
+    function getWeapon(weapon, user) {
         weapon.sprite.kill();
 
         let wpn = weapons.create(10, -5, 'weapon', weapon.sprite._frame.index);
+        wpn.guid = weapon.sprite.guid;
         wpn.scale.setTo(0.8, 0.8);
         wpn.anchor.setTo(0.5, 0.5);
 
         user.weapon = user.sprite.children[0].addChild(wpn);
     }
 
-    // function fire(fireRate) {
-    //
-    //     if (game.time.now > nextFire && bullets.countDead() > 0)
-    //     {
-    //         nextFire = game.time.now + fireRate;
-    //
-    //         var bullet = bullets.getFirstExists(false);
-    //
-    //         bullet.reset(turret.x, turret.y);
-    //
-    //         bullet.rotation = game.physics.arcade.moveToPointer(bullet, 1000, game.input.activePointer, 500);
-    //     }
-    //
-    // }
+    function removeBullet(bullet) {
+        bullet.sprite.kill();
+    }
+
+    function dropWeapon(userData) {
+        let user = users[userData.name];
+        let oldWeapon = user.sprite.body.weapon;
+        let newWeapon = weapons.create(user.sprite.x, user.sprite.y, 'weapon', oldWeapon._frame.index);
+
+        newWeapon.guid = oldWeapon.guid;
+        game.physics.p2.enable(newWeapon);
+        newWeapon.checkWorldBounds = true;
+        newWeapon.body.collideWorldBounds = true;
+        newWeapon.anchor.setTo(0.5, 0.5);
+        newWeapon.body.mass = 1;
+        newWeapon.body.fixedRotation = true;
+        newWeapon.body.setCollisionGroup(weaponCollisionGroup);
+        newWeapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup, bulletCollisionGroup]);
+        newWeapon.body.setMaterial(weaponMaterial);
+        newWeapon.body.createGroupCallback(playerCollisionGroup, getWeapon);
+    }
+
+    function fire(fireRate) {
+        if (game.time.now > nextFire) {
+            nextFire = game.time.now + fireRate;
+
+            var bullet = bullets.getFirstExists(false);
+            
+            bullet.reset(player.sprite.body.weapon.previousPosition.x, player.sprite.body.weapon.previousPosition.y);
+
+            if(player.facing === 1){
+                bullet.scale.x = 0.5;
+                bullet.rotation = player.sprite.children[0].rotation;
+                bullet.body.velocity.x = Math.cos(bullet.rotation) * 1300;
+                bullet.body.velocity.y = Math.sin(bullet.rotation) * 1300;
+            }
+            else{
+                bullet.scale.x = -0.5;
+                bullet.rotation = Math.PI - player.sprite.children[0].rotation;
+                bullet.body.velocity.x = Math.cos(bullet.rotation) * 1300;
+                bullet.body.velocity.y = Math.sin(bullet.rotation) * 1300;
+            }
+
+        }
+    }
 
     function create() {
+        /**
+         * ==========game init block=========
+         */
 
         game.canvas.oncontextmenu = function (e) {
             e.preventDefault();
         };
+        // game.world.setBounds(1000, 1000, 2000, 1200);
 
         game.physics.startSystem(Phaser.Physics.P2JS);
 
@@ -261,58 +309,104 @@ window.onload = function () {
         layer = map.createLayer('lvl2');
         layer.renderSettings.enableScrollDelta = false;
         layer.resizeWorld();
-        game.physics.p2.setBoundsToWorld(true, true, true, true, true);
+        game.physics.p2.setBoundsToWorld(true, true, true, true, false);
 
         let layerTiles = game.physics.p2.convertTilemap(map, layer);
 
         layerTiles.forEach(function(tile){
             tile.setCollisionGroup(groundCollisionGroup);
-            tile.collides([playerCollisionGroup, weaponCollisionGroup]);
+            tile.collides([playerCollisionGroup, weaponCollisionGroup, bulletCollisionGroup]);
             tile.setMaterial(groundMaterial);
         });
+
+        game.physics.p2.setBoundsToWorld(true, true, true, true, false);
 
         users = game.add.group();
         weapons = game.add.group();
         bullets = game.add.group();
+        /**
+         * ==========game init block=========
+         */
 
-        const localPlayerData = {
+        /**
+         * =============player init block=========
+         */
+        player = userSpriteHandler({
             name: globalPlayerName,
             x: 150,
             y: 100,
             facing: 1,
             spriteType: 'jackBeard'
-        };
-
-        player = userSpriteHandler(localPlayerData);
-
-        game.camera.follow(player.sprite);
-
-        socket.subscribe(getUserPresenceChannelName(localPlayerData.name)).watch(function (userData) {
-            newWeaponPositions = userData.weaponPositions;
-
-            if(newWeaponPositions) {
-                rifle.reset(newWeaponPositions.rifleX, newWeaponPositions.rifleY);
-            }
-            userSpriteHandler(userData);
         });
 
-        rifle = weapons.create(200, 200, 'weapon', 17);
+        game.camera.follow(player.sprite);
+        /**
+         * =============player init block=========
+         */
 
+        /**
+         * ==========weapons init block===============
+         */
 
-        weapons.children.forEach(function(weapon){
-            game.physics.p2.enable(weapon);
+        for(let key in mapService.forest.weapons){
+            weapons.create(mapService.forest.weapons[key].x, mapService.forest.weapons[key].y, 'weapon', mapService.forest.weapons[key].frame);
+        }
 
-            weapon.checkWorldBounds = true;
-            weapon.body.collideWorldBounds = true;
-            // weapon.body.setRectangle(40, 75, 0, 0);
-            weapon.anchor.setTo(0.5, 0.5);
-            // weapon.body.fixedRotation = true;
-            weapon.body.mass = 2;
+        game.physics.p2.enable(weapons);
+        weapons.setAll('guid', guid());
+        weapons.setAll('anchor.x', 0.5);
+        weapons.setAll('anchor.y', 0.5);
+        weapons.setAll('checkWorldBounds', true);
+
+        weapons.forEach(function(weapon){
             weapon.body.setCollisionGroup(weaponCollisionGroup);
             weapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
             weapon.body.setMaterial(weaponMaterial);
-            weapon.body.createGroupCallback(playerCollisionGroup, gunCollisionCallback);
+            weapon.body.createGroupCallback(playerCollisionGroup, getWeapon);
+        });
+        /**
+         * ==========weapons init block===============
+         */
 
+
+        /**
+         * ============bullets init block============
+         */
+        // game.physics.p2.enable(bullets);
+        bullets.enableBody = true;
+        bullets.physicsBodyType = Phaser.Physics.P2JS;
+        bullets.createMultiple(100, 'bullet', 0, false);
+        bullets.setAll('anchor.x', 0.5);
+        bullets.setAll('anchor.y', 0.5);
+        bullets.setAll('checkWorldBounds', true);
+        bullets.setAll('outOfBoundsKill', true);
+        bullets.setAll('scale.x', 0.5);
+        bullets.setAll('scale.y', 0.5);
+        bullets.setAll('body.fixedRotation', true);
+        bullets.forEach(function(bullet){
+            bullet.body.setCollisionGroup(bulletCollisionGroup);
+            bullet.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
+            bullet.body.setMaterial(bulletMaterial);
+            bullet.body.createGroupCallback(groundCollisionGroup, removeBullet);
+        });
+        /**
+         * ============bullets init block============
+         */
+
+
+        /**
+         * =============socket interaction block=============
+         */
+        socket.subscribe(getUserPresenceChannelName(globalPlayerName)).watch(function (userData) {
+            weapons.children.forEach(function(localWeapon){
+                userData.weapons.forEach(function(weaponFromSever){
+                    if(localWeapon._frame.index === weaponFromSever.index){
+                        localWeapon.reset(weaponFromSever.x, weaponFromSever.y);
+                    }
+                })
+            });
+
+            userSpriteHandler(userData);
         });
 
         socket.subscribe('player-join').watch(function (userData) {
@@ -325,10 +419,13 @@ window.onload = function () {
                     facing: player.facing,
                     spriteType: player.spriteType,
                     rotation: player.sprite.children[0].rotation,
-                    weaponPositions: {
-                        rifleX: rifle.x,
-                        rifleY: rifle.y
-                    }
+                    weapons: weapons.children.map(function(weapon){
+                        return {
+                            index: weapon._frame.index,
+                            x: player.sprite.body.weapon && (weapon.guid === player.sprite.body.weapon.guid) ? player.sprite.x : weapon.x,
+                            y: player.sprite.body.weapon && (weapon.guid === player.sprite.body.weapon.guid) ? player.sprite.y : weapon.y
+                        }
+                    })
                 });
             }
         });
@@ -358,6 +455,7 @@ window.onload = function () {
             rotation: player.sprite.children[0].rotation
         });
 
+
         function sendPlayerMove() {
             socket.emit('move', {
                 x: player.sprite.body.x,
@@ -372,9 +470,14 @@ window.onload = function () {
             sendPlayerMove();
         },
         10);
+        /**
+         * =============socket interaction block=============
+         */
     }
 
     function update() {
+
+        bullets.forEach(function(bullet){ if(!bullet.inWorld) bullet.kill()}, this, false)
 
         const angle = angleToPointer(player.sprite);
 
@@ -392,8 +495,8 @@ window.onload = function () {
             player.facing = -1;
             player.sprite.scale.x = -1;
         }
-        if (keys.lmb.isDown) {
-
+        if (keys.lmb.isDown && player.sprite.body && player.sprite.body.weapon) {
+            fire(100);
         }
 
         player.label.alignTo(player.sprite, Phaser.BOTTOM_CENTER, 0, 50);
