@@ -101,13 +101,9 @@ window.onload = function () {
         user.label = game.add.text(0, 0, user.name, textStyle);
         user.label.anchor.set(0.5);
 
-        // user.sprite.animations.add('left', [8, 7, 6, 5, 4, 3, 2, 1], 10, true);
-        // console.log(user.sprite,user.sprite.animations)
         user.sprite.children[1].animations.add('move', [1,2,3,4,5,6,7,8], 20, true);
-        // user.sprite.animations.add('jumpright', [18, 19, 20, 21, 22, 23, 24, 25], 7, false);
-        // user.sprite.animations.add('jumpleft', [33, 32, 31, 30, 29, 28, 27, 26], 7, false);
 
-        updateUser(userData);
+        // updateUser(userData);
 
         return user;
     }
@@ -120,26 +116,24 @@ window.onload = function () {
                 sprite.rotation = userData.rotation;
             }
         });
-        if(user.sprite.body && userData.name !==  globalPlayerName){
+
+        if(user.sprite.body){
             user.sprite.body.static = true;
         }
-        if (userData.facing === 1) {
-            // user.sprite.children[1].animations.play('right')
+
+        // if(userData.x === user.x && user.sprite.children[1]) {
+        //     user.sprite.children[1].frame = 0;
+        //     user.sprite.children[1].animations.stop()
+        // }
+        if (userData.facing === 1 && user.sprite.children[1]) {
+            user.sprite.children[1].animations.play('move');
             user.sprite.scale.x = 1;
         }
-        if (userData.facing === -1) {
-            // user.sprite.animations.play('left')
+        else if (userData.facing === -1 && user.sprite.children[1]) {
+            user.sprite.children[1].animations.play('move');
             user.sprite.scale.x = -1;
         }
-        if(userData.x === user.x) {
-            // user.sprite.children[1].animations.stop();
-            // if (user.facing === -1) {
-            //     user.sprite.frame = 17;
-            // }
-            // else if (user.facing === 1) {
-            //     user.sprite.frame = 0;
-            // }
-        }
+
         if(user.sprite.body){
             user.x = user.sprite.body.x = userData.x;
             user.y = user.sprite.body.y = userData.y;
