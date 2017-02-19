@@ -32,7 +32,7 @@ window.onload = function () {
         game.load.tilemap('lvl2', '../assets/lvl2.json', null, Phaser.Tilemap.TILED_JSON);
         game.load.image('tiles-1', '../assets/tiles-1.png');
         game.load.spritesheet('dude', '../assets/player5.png', 75, 73);
-        game.load.spritesheet('jackBeardBody', '../assets/jack-beard/body.png', 75, 75);
+        game.load.spritesheet('jackBeardBody', '../assets/walking_center.png', 75, 75);
         game.load.spritesheet('jackBeardHead', '../assets/jack-beard/head.png', 75, 75);
         game.load.spritesheet('jackBeardFrontArm', '../assets/jack-beard/front-arm.png', 75, 75);
         game.load.spritesheet('jackBeardBackArm', '../assets/jack-beard/back-arm.png', 75, 75);
@@ -69,6 +69,7 @@ window.onload = function () {
         user.sprite = users.create(0, 0);
         game.physics.p2.enable(user.sprite);
 
+        user.sprite.name = user.name;
         user.sprite.checkWorldBounds = true;
         user.sprite.body.collideWorldBounds = true;
         user.sprite.body.setRectangle(40, 75, 0, 0);
@@ -101,7 +102,8 @@ window.onload = function () {
         user.label.anchor.set(0.5);
 
         // user.sprite.animations.add('left', [8, 7, 6, 5, 4, 3, 2, 1], 10, true);
-        // user.sprite.animations.add('right', [9, 10, 11, 12, 13, 14, 15, 16], 10, true);
+        // console.log(user.sprite,user.sprite.animations)
+        user.sprite.children[1].animations.add('move', [1,2,3,4,5,6,7,8], 20, true);
         // user.sprite.animations.add('jumpright', [18, 19, 20, 21, 22, 23, 24, 25], 7, false);
         // user.sprite.animations.add('jumpleft', [33, 32, 31, 30, 29, 28, 27, 26], 7, false);
 
@@ -122,7 +124,7 @@ window.onload = function () {
             user.sprite.body.static = true;
         }
         if (userData.facing === 1) {
-            // user.sprite.animations.play('right')
+            // user.sprite.children[1].animations.play('right')
             user.sprite.scale.x = 1;
         }
         if (userData.facing === -1) {
@@ -130,13 +132,13 @@ window.onload = function () {
             user.sprite.scale.x = -1;
         }
         if(userData.x === user.x) {
-            // user.sprite.animations.stop();
-            if (user.facing === -1) {
-                user.sprite.frame = 17;
-            }
-            else if (user.facing === 1) {
-                user.sprite.frame = 0;
-            }
+            // user.sprite.children[1].animations.stop();
+            // if (user.facing === -1) {
+            //     user.sprite.frame = 17;
+            // }
+            // else if (user.facing === 1) {
+            //     user.sprite.frame = 0;
+            // }
         }
         if(user.sprite.body){
             user.x = user.sprite.body.x = userData.x;
@@ -145,6 +147,10 @@ window.onload = function () {
         // user.sprite.health = userData.health;
 
         user.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
+
+        if(userData.isFiring){
+            fire(100, user)
+        }
 
         return user;
     }
@@ -215,10 +221,13 @@ window.onload = function () {
         bullet.sprite.kill();
     }
 
-    function hitPlayer(bullet, user) {
-        if(user.id !== player.sprite.body.id){
+    function hitUser(bullet, user) {
+        if(user.sprite.name !== bullet.sprite.parentUser){
             bullet.sprite.kill();
             user.sprite.damage(10);
+            if(user.sprite.health <= 0){
+                user.label.kill();
+            }
         }
     }
 
@@ -240,27 +249,30 @@ window.onload = function () {
         newWeapon.body.createGroupCallback(playerCollisionGroup, getWeapon);
     }
 
-    function fire(fireRate) {
+    function fire(fireRate, user) {
         if (game.time.now > nextFire) {
             nextFire = game.time.now + fireRate;
 
-            var bullet = bullets.getFirstExists(false);
-            
-            bullet.reset(player.sprite.body.weapon.previousPosition.x, player.sprite.body.weapon.previousPosition.y);
+            const bullet = bullets.getFirstExists(false);
 
-            if(player.facing === 1){
-                bullet.scale.x = 0.5;
-                bullet.rotation = player.sprite.children[0].rotation;
-                bullet.body.velocity.x = Math.cos(bullet.rotation) * 1300;
-                bullet.body.velocity.y = Math.sin(bullet.rotation) * 1300;
-            }
-            else{
-                bullet.scale.x = -0.5;
-                bullet.rotation = Math.PI - player.sprite.children[0].rotation;
-                bullet.body.velocity.x = Math.cos(bullet.rotation) * 1300;
-                bullet.body.velocity.y = Math.sin(bullet.rotation) * 1300;
-            }
+            if(bullet){
+                bullet.reset(user.sprite.body.weapon.previousPosition.x, user.sprite.body.weapon.previousPosition.y);
 
+                bullet.parentUser = user.name;
+
+                if(user.facing === 1){
+                    bullet.scale.x = 0.5;
+                    bullet.rotation = user.sprite.children[0].rotation;
+                    bullet.body.velocity.x = Math.cos(bullet.rotation) * 1300;
+                    bullet.body.velocity.y = Math.sin(bullet.rotation) * 1300;
+                }
+                else{
+                    bullet.scale.x = -0.5;
+                    bullet.rotation = Math.PI - user.sprite.children[0].rotation;
+                    bullet.body.velocity.x = Math.cos(bullet.rotation) * 1300;
+                    bullet.body.velocity.y = Math.sin(bullet.rotation) * 1300;
+                }
+            }
         }
     }
 
@@ -272,7 +284,6 @@ window.onload = function () {
         game.canvas.oncontextmenu = function (e) {
             e.preventDefault();
         };
-        // game.world.setBounds(1000, 1000, 2000, 1200);
 
         game.physics.startSystem(Phaser.Physics.P2JS);
 
@@ -296,6 +307,10 @@ window.onload = function () {
         });
         game.physics.p2.createContactMaterial(weaponMaterial, playerMaterial, {
             friction: 1,
+            restitution: 0
+        });
+        game.physics.p2.createContactMaterial(weaponMaterial, groundMaterial, {
+            friction: 0.5,
             restitution: 0
         });
 
@@ -345,6 +360,7 @@ window.onload = function () {
             y: 100,
             facing: 1,
             spriteType: 'jackBeard',
+            isFiring: false
             // health: 100
         });
 
@@ -395,7 +411,7 @@ window.onload = function () {
             bullet.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
             bullet.body.setMaterial(bulletMaterial);
             bullet.body.createGroupCallback(groundCollisionGroup, removeBullet);
-            bullet.body.createGroupCallback(playerCollisionGroup, hitPlayer);
+            bullet.body.createGroupCallback(playerCollisionGroup, hitUser);
         });
         /**
          * ============bullets init block============
@@ -429,6 +445,7 @@ window.onload = function () {
                     spriteType: player.spriteType,
                     rotation: player.sprite.children[0].rotation,
                     // health: player.sprite.health,
+                    isFiring: player.isFiring,
                     weapons: weapons.children.map(function(weapon){
                         return {
                             index: weapon._frame.index,
@@ -463,6 +480,7 @@ window.onload = function () {
             facing: player.facing,
             spriteType: player.spriteType,
             rotation: player.sprite.children[0].rotation,
+            isFiring: player.isFiring
             // health: player.sprite.health
         });
 
@@ -474,12 +492,12 @@ window.onload = function () {
                 facing: player.facing,
                 spriteType: player.spriteType,
                 rotation: player.sprite.children[0].rotation,
+                isFiring: player.isFiring
                 // health: player.sprite.health
             });
         }
 
         setInterval(function () {
-            console.log(player.sprite.health)
             sendPlayerMove();
         },
         10);
@@ -489,27 +507,46 @@ window.onload = function () {
     }
 
     function update() {
-
-        bullets.forEach(function(bullet){ if(!bullet.inWorld) bullet.kill()}, this, false)
-
         const angle = angleToPointer(player.sprite);
 
         if (keys.up.isDown && checkIfCanJump() && game.time.now > jumpTimer) {
             player.sprite.body.moveUp(700);
             jumpTimer = game.time.now + 750;
         }
+
         if (keys.right.isDown) {
+            if(keys.up.isUp) {
+                player.sprite.children[1].animations.play('move');
+            }
+            else{
+                player.sprite.children[1].animations.stop();
+            }
             player.sprite.body.moveRight(moveSpeed);
             player.facing = 1;
             player.sprite.scale.x = 1;
         }
-        if (keys.left.isDown) {
+        else if (keys.left.isDown) {
+            if(keys.up.isUp){
+                player.sprite.children[1].animations.play('move');
+            }
+            else{
+                player.sprite.children[1].animations.stop();
+            }
             player.sprite.body.moveLeft(moveSpeed);
             player.facing = -1;
             player.sprite.scale.x = -1;
         }
+        else{
+            player.sprite.children[1].frame = 0;
+            player.sprite.children[1].animations.stop()
+        }
+
         if (keys.lmb.isDown && player.sprite.body && player.sprite.body.weapon) {
-            fire(100);
+            player.isFiring = true;
+            fire(100, player);
+        }
+        else{
+            player.isFiring = false;
         }
 
         player.label.alignTo(player.sprite, Phaser.BOTTOM_CENTER, 0, 50);
