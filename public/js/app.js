@@ -95,7 +95,7 @@ window.onload = function () {
         user.sprite.addChild(frontArm);
 
         user.facing = userData.facing;
-        user.health = 100;
+        // user.sprite.health = userData.health;
 
         user.label = game.add.text(0, 0, user.name, textStyle);
         user.label.anchor.set(0.5);
@@ -142,6 +142,7 @@ window.onload = function () {
             user.x = user.sprite.body.x = userData.x;
             user.y = user.sprite.body.y = userData.y;
         }
+        // user.sprite.health = userData.health;
 
         user.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
 
@@ -212,6 +213,13 @@ window.onload = function () {
 
     function removeBullet(bullet) {
         bullet.sprite.kill();
+    }
+
+    function hitPlayer(bullet, user) {
+        if(user.id !== player.sprite.body.id){
+            bullet.sprite.kill();
+            user.sprite.damage(10);
+        }
     }
 
     function dropWeapon(userData) {
@@ -336,7 +344,8 @@ window.onload = function () {
             x: 150,
             y: 100,
             facing: 1,
-            spriteType: 'jackBeard'
+            spriteType: 'jackBeard',
+            // health: 100
         });
 
         game.camera.follow(player.sprite);
@@ -357,7 +366,6 @@ window.onload = function () {
         weapons.setAll('anchor.x', 0.5);
         weapons.setAll('anchor.y', 0.5);
         weapons.setAll('checkWorldBounds', true);
-
         weapons.forEach(function(weapon){
             weapon.body.setCollisionGroup(weaponCollisionGroup);
             weapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
@@ -372,7 +380,6 @@ window.onload = function () {
         /**
          * ============bullets init block============
          */
-        // game.physics.p2.enable(bullets);
         bullets.enableBody = true;
         bullets.physicsBodyType = Phaser.Physics.P2JS;
         bullets.createMultiple(100, 'bullet', 0, false);
@@ -388,6 +395,7 @@ window.onload = function () {
             bullet.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
             bullet.body.setMaterial(bulletMaterial);
             bullet.body.createGroupCallback(groundCollisionGroup, removeBullet);
+            bullet.body.createGroupCallback(playerCollisionGroup, hitPlayer);
         });
         /**
          * ============bullets init block============
@@ -398,6 +406,7 @@ window.onload = function () {
          * =============socket interaction block=============
          */
         socket.subscribe(getUserPresenceChannelName(globalPlayerName)).watch(function (userData) {
+            
             weapons.children.forEach(function(localWeapon){
                 userData.weapons.forEach(function(weaponFromSever){
                     if(localWeapon._frame.index === weaponFromSever.index){
@@ -419,6 +428,7 @@ window.onload = function () {
                     facing: player.facing,
                     spriteType: player.spriteType,
                     rotation: player.sprite.children[0].rotation,
+                    // health: player.sprite.health,
                     weapons: weapons.children.map(function(weapon){
                         return {
                             index: weapon._frame.index,
@@ -452,7 +462,8 @@ window.onload = function () {
             y: player.y,
             facing: player.facing,
             spriteType: player.spriteType,
-            rotation: player.sprite.children[0].rotation
+            rotation: player.sprite.children[0].rotation,
+            // health: player.sprite.health
         });
 
 
@@ -462,11 +473,13 @@ window.onload = function () {
                 y: player.sprite.body.y,
                 facing: player.facing,
                 spriteType: player.spriteType,
-                rotation: player.sprite.children[0].rotation
+                rotation: player.sprite.children[0].rotation,
+                // health: player.sprite.health
             });
         }
 
         setInterval(function () {
+            console.log(player.sprite.health)
             sendPlayerMove();
         },
         10);

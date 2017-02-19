@@ -8,7 +8,8 @@ const mapService = {
             ak: {
                 x: 300,
                 y: 300,
-                frame: 26
+                frame: 26,
+                damage: 10
             }
         }
     }

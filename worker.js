@@ -50,7 +50,8 @@ module.exports.run = function (worker) {
         y: playerData.y,
         facing: playerData.facing,
         spriteType: playerData.spriteType,
-        rotation: playerData.rotation
+        rotation: playerData.rotation,
+        health: playerData.health
       });
     });
     socket.on('move', function (playerData) {
@@ -67,7 +68,8 @@ module.exports.run = function (worker) {
           y: playerData.y,
           facing: playerData.facing,
           spriteType: playerData.spriteType,
-          rotation: playerData.rotation
+          rotation: playerData.rotation,
+          health: playerData.health
         });
         if (!positionFlushTimeout) {
           positionFlushTimeout = setTimeout(flushPlayerPositions, 10);
