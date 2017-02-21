@@ -100,8 +100,8 @@ window.onload = function () {
         user.facing = userData.facing;
         // user.sprite.health = userData.health;
 
-        user.label = game.add.text(0, 0, user.name, textStyle);
-        user.label.anchor.set(0.5);
+        user.sprite.label = game.add.text(0, 0, user.name, textStyle);
+        user.sprite.label.anchor.set(0.5);
 
         user.sprite.children[1].animations.add('move', [1,2,3,4,5,6,7,8], 20, true);
 
@@ -111,7 +111,6 @@ window.onload = function () {
 
         return user;
     }
-    var once = true
     function updateUser(userData) {
         let user = users[userData.name];
 
@@ -121,12 +120,6 @@ window.onload = function () {
             }
         });
 
-
-        if(once){
-            console.log(user.sprite.body, userData)
-            once = false;
-        }
-
         if(user.sprite.body && Math.round(user.sprite.previousPosition.x) === Math.round(userData.x)) {
             user.sprite.children[1].frame = 0;
             user.sprite.children[1].animations.stop()
@@ -134,10 +127,12 @@ window.onload = function () {
         else if (userData.facing === 1 && user.sprite.children[1]) {
             user.sprite.children[1].animations.play('move');
             user.sprite.scale.x = 1;
+            user.facing = 1;
         }
         else if (userData.facing === -1 && user.sprite.children[1]) {
             user.sprite.children[1].animations.play('move');
             user.sprite.scale.x = -1;
+            user.facing = -1;
         }
 
         if(user.sprite.body){
@@ -146,7 +141,7 @@ window.onload = function () {
         }
         // user.sprite.health = userData.health;
 
-        user.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
+        user.sprite.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
 
         if(userData.isFiring){
             fire(100, user)
@@ -162,7 +157,7 @@ window.onload = function () {
                 dropWeapon(userData);
             }
             user.sprite.destroy();
-            user.label.destroy();
+            user.sprite.label.destroy();
         }
     }
 
@@ -225,9 +220,9 @@ window.onload = function () {
         if(user.sprite.name !== bullet.sprite.parentUser){
             bullet.sprite.kill();
             user.sprite.damage(10);
-            // if(user.sprite.health <= 0){
-            //     user.label.kill();
-            // }
+            if(user.sprite.health <= 0){
+                user.sprite.label.destroy();
+            }
         }
     }
 
@@ -549,7 +544,7 @@ window.onload = function () {
             player.isFiring = false;
         }
 
-        player.label.alignTo(player.sprite, Phaser.BOTTOM_CENTER, 0, 50);
+        player.sprite.label.alignTo(player.sprite, Phaser.BOTTOM_CENTER, 0, 50);
 
         player.sprite.children.forEach(function (sprite) {
             if(sprite.key !== 'jackBeardBody'){
