@@ -71,8 +71,8 @@ window.onload = function () {
 
         user.sprite.name = user.name;
         user.sprite.checkWorldBounds = true;
-        user.sprite.body.x = 130;
-        user.sprite.body.y = 150;
+        user.sprite.body.x = Math.floor(Math.random() * (1000 - 80 + 1)) + 80;
+        user.sprite.body.y = Math.floor(Math.random() * (150 - 100 + 1)) + 100;
         user.sprite.body.collideWorldBounds = true;
         user.sprite.body.setRectangle(40, 75, 0, 0);
         user.sprite.anchor.setTo(0.5, 0.5);
@@ -206,6 +206,8 @@ window.onload = function () {
 
         let wpn = weapons.create(10, -5, 'weapon', weapon.sprite._frame.index);
         wpn.guid = weapon.sprite.guid;
+        wpn.fireRate = weapon.sprite.fireRate;
+        wpn.damage = weapon.sprite.damage;
         wpn.scale.setTo(0.8, 0.8);
         wpn.anchor.setTo(0.5, 0.5);
 
@@ -219,7 +221,7 @@ window.onload = function () {
     function hitUser(bullet, user) {
         if(user.sprite.name !== bullet.sprite.parentUser){
             bullet.sprite.kill();
-            user.sprite.damage(10);
+            user.sprite.damage(user.sprite.body.weapon.damage);
             if(user.sprite.health <= 0){
                 user.sprite.label.destroy();
             }
@@ -244,9 +246,10 @@ window.onload = function () {
         newWeapon.body.createGroupCallback(playerCollisionGroup, getWeapon);
     }
 
-    function fire(fireRate, user) {
+    function fire(user) {
+        console.log(">>",user.sprite.body.weapon)
         if (game.time.now > nextFire) {
-            nextFire = game.time.now + fireRate;
+            nextFire = game.time.now + user.sprite.body.weapon.fireRate;
 
             const bullet = bullets.getFirstExists(false);
 
@@ -369,7 +372,9 @@ window.onload = function () {
          */
 
         for(let key in mapService.forest.weapons){
-            weapons.create(mapService.forest.weapons[key].x, mapService.forest.weapons[key].y, 'weapon', mapService.forest.weapons[key].frame);
+            let newWeapon = weapons.create(mapService.forest.weapons[key].x, mapService.forest.weapons[key].y, 'weapon', mapService.forest.weapons[key].frame);
+            newWeapon.fireRate = mapService.forest.weapons[key].fireRate;
+            newWeapon.damage = mapService.forest.weapons[key].damage;
         }
 
         game.physics.p2.enable(weapons);
@@ -377,6 +382,7 @@ window.onload = function () {
         weapons.setAll('anchor.x', 0.5);
         weapons.setAll('anchor.y', 0.5);
         weapons.setAll('checkWorldBounds', true);
+        weapons.setAll('body.fixedRotation', true);
         weapons.forEach(function(weapon){
             weapon.body.setCollisionGroup(weaponCollisionGroup);
             weapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
@@ -479,7 +485,6 @@ window.onload = function () {
             // health: player.sprite.health
         });
 
-
         function sendPlayerMove() {
             socket.emit('move', {
                 x: player.sprite.body.x,
@@ -538,7 +543,7 @@ window.onload = function () {
 
         if (keys.lmb.isDown && player.sprite.body && player.sprite.body.weapon) {
             player.isFiring = true;
-            fire(100, player);
+            fire(player);
         }
         else{
             player.isFiring = false;

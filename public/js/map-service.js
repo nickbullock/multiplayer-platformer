@@ -7,9 +7,17 @@ const mapService = {
         weapons: {
             ak: {
                 x: 300,
-                y: 300,
+                y: 420,
                 frame: 26,
-                damage: 10
+                damage: 10,
+                fireRate: 100
+            },
+            rifle: {
+                x: 650,
+                y: 620,
+                frame: 19,
+                damage: 50,
+                fireRate: 1000
             }
         }
     }
