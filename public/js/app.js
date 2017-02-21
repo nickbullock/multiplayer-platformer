@@ -71,6 +71,8 @@ window.onload = function () {
 
         user.sprite.name = user.name;
         user.sprite.checkWorldBounds = true;
+        user.sprite.body.x = 130;
+        user.sprite.body.y = 150;
         user.sprite.body.collideWorldBounds = true;
         user.sprite.body.setRectangle(40, 75, 0, 0);
         user.sprite.anchor.setTo(0.5, 0.5);
@@ -109,7 +111,7 @@ window.onload = function () {
 
         return user;
     }
-
+    var once = true
     function updateUser(userData) {
         let user = users[userData.name];
 
@@ -119,11 +121,17 @@ window.onload = function () {
             }
         });
 
-        // if(userData.x === user.x && user.sprite.children[1]) {
-        //     user.sprite.children[1].frame = 0;
-        //     user.sprite.children[1].animations.stop()
-        // }
-        if (userData.facing === 1 && user.sprite.children[1]) {
+
+        if(once){
+            console.log(user.sprite.body, userData)
+            once = false;
+        }
+
+        if(user.sprite.body && Math.round(user.sprite.previousPosition.x) === Math.round(userData.x)) {
+            user.sprite.children[1].frame = 0;
+            user.sprite.children[1].animations.stop()
+        }
+        else if (userData.facing === 1 && user.sprite.children[1]) {
             user.sprite.children[1].animations.play('move');
             user.sprite.scale.x = 1;
         }
@@ -133,8 +141,8 @@ window.onload = function () {
         }
 
         if(user.sprite.body){
-            user.x = user.sprite.body.x = userData.x;
-            user.y = user.sprite.body.y = userData.y;
+            user.sprite.body.x = userData.x;
+            user.sprite.body.y = userData.y;
         }
         // user.sprite.health = userData.health;
 
@@ -217,9 +225,9 @@ window.onload = function () {
         if(user.sprite.name !== bullet.sprite.parentUser){
             bullet.sprite.kill();
             user.sprite.damage(10);
-            if(user.sprite.health <= 0){
-                user.label.kill();
-            }
+            // if(user.sprite.health <= 0){
+            //     user.label.kill();
+            // }
         }
     }
 
