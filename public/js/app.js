@@ -103,7 +103,9 @@ window.onload = function () {
 
         user.sprite.children[1].animations.add('move', [1,2,3,4,5,6,7,8], 20, true);
 
-        // updateUser(userData);
+        if(user.sprite.body && userData.name !== globalPlayerName){
+            user.sprite.body.static = true;
+        }
 
         return user;
     }
@@ -116,10 +118,6 @@ window.onload = function () {
                 sprite.rotation = userData.rotation;
             }
         });
-
-        if(user.sprite.body){
-            user.sprite.body.static = true;
-        }
 
         // if(userData.x === user.x && user.sprite.children[1]) {
         //     user.sprite.children[1].frame = 0;
