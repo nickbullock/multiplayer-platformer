@@ -144,7 +144,7 @@ window.onload = function () {
         user.sprite.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
 
         if(userData.isFiring){
-            fire(100, user)
+            fire(user)
         }
 
         return user;
@@ -205,13 +205,13 @@ window.onload = function () {
         weapon.sprite.kill();
 
         let wpn = weapons.create(10, -5, 'weapon', weapon.sprite._frame.index);
-        wpn.guid = weapon.sprite.guid;
-        wpn.fireRate = weapon.sprite.fireRate;
-        wpn.damage = weapon.sprite.damage;
         wpn.scale.setTo(0.8, 0.8);
         wpn.anchor.setTo(0.5, 0.5);
 
         user.weapon = user.sprite.children[0].addChild(wpn);
+        user.weapon.guid = weapon.sprite.guid;
+        user.weapon.fireRate = weapon.sprite.fireRate;
+        user.weapon.damage = weapon.sprite.damage;
     }
 
     function removeBullet(bullet) {
@@ -221,7 +221,10 @@ window.onload = function () {
     function hitUser(bullet, user) {
         if(user.sprite.name !== bullet.sprite.parentUser){
             bullet.sprite.kill();
-            user.sprite.damage(user.sprite.body.weapon.damage);
+
+            const damage = users[bullet.sprite.parentUser].sprite.body.weapon.damage;
+
+            user.sprite.damage(damage);
             if(user.sprite.health <= 0){
                 user.sprite.label.destroy();
             }
@@ -247,14 +250,14 @@ window.onload = function () {
     }
 
     function fire(user) {
-        console.log(">>",user.sprite.body.weapon)
         if (game.time.now > nextFire) {
             nextFire = game.time.now + user.sprite.body.weapon.fireRate;
 
             const bullet = bullets.getFirstExists(false);
 
             if(bullet){
-                bullet.reset(user.sprite.body.weapon.previousPosition.x, user.sprite.body.weapon.previousPosition.y);
+                console.log(user.sprite.body.weapon.previousPosition.x, user.sprite.body.weapon.previousPosition.y)
+                bullet.reset(user.sprite.body.weapon.previousPosition.x+5, user.sprite.body.weapon.previousPosition.y+5);
 
                 bullet.parentUser = user.name;
 
