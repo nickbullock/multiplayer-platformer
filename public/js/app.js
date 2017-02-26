@@ -278,7 +278,7 @@ window.onload = function () {
             });
 
             if(publish){
-                socket.publish("drop", globalPlayerName);
+                socket.publish("drop", username);
             }
         }
     }
@@ -419,7 +419,7 @@ window.onload = function () {
         weapons.setAll('checkWorldBounds', true);
         weapons.setAll('body.fixedRotation', true);
         weapons.forEach(function(weapon){
-            weapon.body.setCircle(15);
+            // weapon.body.setCircle(15);
             weapon.body.setCollisionGroup(weaponCollisionGroup);
             weapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
             weapon.body.setMaterial(weaponMaterial);
