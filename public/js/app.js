@@ -98,7 +98,7 @@ window.onload = function () {
         user.sprite.addChild(frontArm);
 
         user.facing = userData.facing;
-        // user.sprite.health = userData.health;
+        user.sprite.health = userData.health;
 
         user.sprite.label = game.add.text(0, 0, user.name, textStyle);
         user.sprite.label.anchor.set(0.5);
@@ -139,7 +139,7 @@ window.onload = function () {
             user.sprite.body.x = userData.x;
             user.sprite.body.y = userData.y;
         }
-        // user.sprite.health = userData.health;
+        user.sprite.health = userData.health;
 
         user.sprite.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
 
@@ -369,8 +369,8 @@ window.onload = function () {
             y: 100,
             facing: 1,
             spriteType: 'jackBeard',
-            isFiring: false
-            // health: 100
+            isFiring: false,
+            health: 100
         });
 
         game.camera.follow(player.sprite);
@@ -470,7 +470,7 @@ window.onload = function () {
                     facing: player.facing,
                     spriteType: player.spriteType,
                     rotation: player.sprite.children[0].rotation,
-                    // health: player.sprite.health,
+                    health: player.sprite.health,
                     isFiring: player.isFiring,
                     weapons: weapons.children.map(function(weapon){
                         return {
@@ -482,7 +482,7 @@ window.onload = function () {
                             y: player.sprite.body.weapon && (weapon.guid === player.sprite.body.weapon.guid) ? player.sprite.body.weapon.previousPosition.y : weapon.y
                         }
                     })
-                }
+                };
 
                 socket.publish(getUserPresenceChannelName(userData.name), initDataToNewPlayer);
             }
@@ -511,8 +511,8 @@ window.onload = function () {
             facing: player.facing,
             spriteType: player.spriteType,
             rotation: player.sprite.children[0].rotation,
-            isFiring: player.isFiring
-            // health: player.sprite.health
+            isFiring: player.isFiring,
+            health: player.sprite.health
         });
 
         function sendPlayerMove() {
@@ -522,8 +522,8 @@ window.onload = function () {
                 facing: player.facing,
                 spriteType: player.spriteType,
                 rotation: player.sprite.children[0].rotation,
-                isFiring: player.isFiring
-                // health: player.sprite.health
+                isFiring: player.isFiring,
+                health: player.sprite.health
             });
         }
 

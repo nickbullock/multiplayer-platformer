@@ -51,8 +51,8 @@ module.exports.run = function (worker) {
                 facing: playerData.facing,
                 spriteType: playerData.spriteType,
                 rotation: playerData.rotation,
-                isFiring: playerData.isFiring
-                // health: playerData.health
+                isFiring: playerData.isFiring,
+                health: playerData.health
             });
         });
         socket.on('move', function (playerData) {
@@ -70,8 +70,8 @@ module.exports.run = function (worker) {
                     facing: playerData.facing,
                     spriteType: playerData.spriteType,
                     rotation: playerData.rotation,
-                    isFiring: playerData.isFiring
-                    // health: playerData.health
+                    isFiring: playerData.isFiring,
+                    health: playerData.health
                 });
                 if (!positionFlushTimeout) {
                     positionFlushTimeout = setTimeout(flushPlayerPositions, 10);
