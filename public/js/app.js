@@ -351,7 +351,7 @@ window.onload = function () {
             tile.setMaterial(groundMaterial);
         });
 
-        game.physics.p2.setBoundsToWorld(true, true, true, true, false);
+        game.physics.p2.setBoundsToWorld(true, true, true, true, true);
 
         users = game.add.group();
         weapons = game.add.group();
