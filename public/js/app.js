@@ -226,7 +226,13 @@ window.onload = function () {
 
             user.sprite.damage(damage);
             if(user.sprite.health <= 0){
+                user.sprite.kill();
                 user.sprite.label.destroy();
+
+                /**
+                 * sync kill between players
+                 */
+                socket.publish(getUserPresenceChannelName(user.sprite.name), "kill")
             }
         }
     }
@@ -265,21 +271,21 @@ window.onload = function () {
             const bullet = bullets.getFirstExists(false);
 
             if(bullet){
-                bullet.reset(user.sprite.body.weapon.previousPosition.x+5, user.sprite.body.weapon.previousPosition.y+5);
+                bullet.reset(user.sprite.body.weapon.previousPosition.x, user.sprite.body.weapon.previousPosition.y);
 
                 bullet.parentUser = user.name;
 
                 if(user.facing === 1){
                     bullet.scale.x = 0.5;
                     bullet.rotation = user.sprite.children[0].rotation;
-                    bullet.body.velocity.x = Math.cos(bullet.rotation) * 1300;
-                    bullet.body.velocity.y = Math.sin(bullet.rotation) * 1300;
+                    bullet.body.velocity.x = Math.cos(bullet.rotation) * 1700;
+                    bullet.body.velocity.y = Math.sin(bullet.rotation) * 1700;
                 }
                 else{
                     bullet.scale.x = -0.5;
                     bullet.rotation = Math.PI - user.sprite.children[0].rotation;
-                    bullet.body.velocity.x = Math.cos(bullet.rotation) * 1300;
-                    bullet.body.velocity.y = Math.sin(bullet.rotation) * 1300;
+                    bullet.body.velocity.x = Math.cos(bullet.rotation) * 1700;
+                    bullet.body.velocity.y = Math.sin(bullet.rotation) * 1700;
                 }
             }
         }
@@ -351,7 +357,6 @@ window.onload = function () {
             tile.setMaterial(groundMaterial);
         });
 
-        game.physics.p2.setBoundsToWorld(true, true, true, true, true);
 
         users = game.add.group();
         weapons = game.add.group();
@@ -434,30 +439,40 @@ window.onload = function () {
          * =============socket interaction block=============
          */
         socket.subscribe(getUserPresenceChannelName(globalPlayerName)).watch(function (userData) {
-            weapons.removeAll(true);
-
-            if(userData.weapons && Array.isArray(userData.weapons) && userData.weapons.length > 0){
-                userData.weapons.forEach(function(weaponFromServer){
-                    let newWeapon = weapons.create(weaponFromServer.x, weaponFromServer.y, 'weapon', weaponFromServer.index);
-                    newWeapon.guid = weaponFromServer.guid;
-                    newWeapon.fireRate = weaponFromServer.fireRate;
-                    newWeapon.damage = weaponFromServer.damage;
-                });
-
-                game.physics.p2.enable(weapons);
-                weapons.setAll('anchor.x', 0.5);
-                weapons.setAll('anchor.y', 0.5);
-                weapons.setAll('checkWorldBounds', true);
-                weapons.setAll('body.fixedRotation', true);
-                weapons.forEach(function(weapon){
-                    weapon.body.setCollisionGroup(weaponCollisionGroup);
-                    weapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
-                    weapon.body.setMaterial(weaponMaterial);
-                    weapon.body.createGroupCallback(playerCollisionGroup, getWeapon);
-                });
+            if(userData === "kill"){
+                if(player.sprite.alive){
+                    player.sprite.kill();
+                }
+                if(player.sprite.alive.label){
+                    player.sprite.label.destroy();
+                }
             }
+            else{
+                weapons.removeAll(true);
 
-            userSpriteHandler(userData);
+                if(userData.weapons && Array.isArray(userData.weapons) && userData.weapons.length > 0){
+                    userData.weapons.forEach(function(weaponFromServer){
+                        let newWeapon = weapons.create(weaponFromServer.x, weaponFromServer.y, 'weapon', weaponFromServer.index);
+                        newWeapon.guid = weaponFromServer.guid;
+                        newWeapon.fireRate = weaponFromServer.fireRate;
+                        newWeapon.damage = weaponFromServer.damage;
+                    });
+
+                    game.physics.p2.enable(weapons);
+                    weapons.setAll('anchor.x', 0.5);
+                    weapons.setAll('anchor.y', 0.5);
+                    weapons.setAll('checkWorldBounds', true);
+                    weapons.setAll('body.fixedRotation', true);
+                    weapons.forEach(function(weapon){
+                        weapon.body.setCollisionGroup(weaponCollisionGroup);
+                        weapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
+                        weapon.body.setMaterial(weaponMaterial);
+                        weapon.body.createGroupCallback(playerCollisionGroup, getWeapon);
+                    });
+                }
+
+                userSpriteHandler(userData);
+            }
         });
 
         socket.subscribe('player-join').watch(function (userData) {
@@ -571,7 +586,7 @@ window.onload = function () {
             player.sprite.children[1].animations.stop()
         }
 
-        if (keys.lmb.isDown && player.sprite.body && player.sprite.body.weapon) {
+        if (keys.lmb.isDown && player && player.sprite.body && player.sprite.body.weapon && player.sprite.health > 0) {
             player.isFiring = true;
             fire(player);
         }

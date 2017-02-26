@@ -10,13 +10,13 @@ const mapService = {
                 y: 420,
                 frame: 26,
                 damage: 10,
-                fireRate: 100
+                fireRate: 200
             },
             rifle: {
                 x: 650,
                 y: 620,
                 frame: 19,
-                damage: 50,
+                damage: 40,
                 fireRate: 1000
             }
         }
