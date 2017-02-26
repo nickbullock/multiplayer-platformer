@@ -26,6 +26,7 @@ window.onload = function () {
             down: game.input.keyboard.addKey(Phaser.Keyboard.S),
             right: game.input.keyboard.addKey(Phaser.Keyboard.D),
             left: game.input.keyboard.addKey(Phaser.Keyboard.A),
+            drop: game.input.keyboard.addKey(Phaser.Keyboard.G),
             rmb: game.input.mousePointer.rightButton,
             lmb: game.input.mousePointer.leftButton
         };
@@ -154,7 +155,7 @@ window.onload = function () {
         let user = users[userData.name];
         if (user) {
             if(user.sprite.body && user.sprite.body.weapon){
-                dropWeapon(userData);
+                dropWeapon(userData.name, 0, false);
             }
             user.sprite.destroy();
             user.sprite.label.destroy();
@@ -202,16 +203,17 @@ window.onload = function () {
     }
 
     function getWeapon(weapon, user) {
-        weapon.sprite.kill();
+        if(!user.weapon){
+            let wpn = weapons.create(10, -5, 'weapon', weapon.sprite._frame.index);
+            wpn.guid = weapon.sprite.guid;
+            wpn.fireRate = weapon.sprite.fireRate;
+            wpn.damage = weapon.sprite.damage;
+            wpn.scale.setTo(0.8, 0.8);
+            wpn.anchor.setTo(0.5, 0.5);
 
-        let wpn = weapons.create(10, -5, 'weapon', weapon.sprite._frame.index);
-        wpn.guid = weapon.sprite.guid;
-        wpn.fireRate = weapon.sprite.fireRate;
-        wpn.damage = weapon.sprite.damage;
-        wpn.scale.setTo(0.8, 0.8);
-        wpn.anchor.setTo(0.5, 0.5);
-
-        user.weapon = user.sprite.children[0].addChild(wpn);
+            user.weapon = user.sprite.children[0].addChild(wpn);
+            weapon.sprite.kill();
+        }
     }
 
     function removeBullet(bullet) {
@@ -227,7 +229,7 @@ window.onload = function () {
             user.sprite.damage(damage);
             if(user.sprite.health <= 0){
                 user.sprite.kill();
-                user.sprite.label.destroy();
+                user.sprite.label.kill();
 
                 /**
                  * sync kill between players
@@ -237,31 +239,48 @@ window.onload = function () {
         }
     }
 
-    function dropWeapon(userData) {
-        let user = users[userData.name];
+    function dropWeapon(username, offsetX, publish) {
+        let user = users[username];
         let oldWeapon = user.sprite.body.weapon;
+        if(oldWeapon){
+            const offsetInit = offsetX || 0;
 
-        weapons.forEach(function(weapon){
-            if(weapon.guid === oldWeapon.guid){
+            weapons.forEach(function(weapon){
+                if(weapon.guid === oldWeapon.guid){
+                    weapon.destroy();
+                }
+            });
+
+            let newWeapon = weapons.create(
+                user.facing === 1 ? user.sprite.x + offsetInit : user.sprite.x - offsetInit,
+                user.sprite.y,
+                'weapon',
+                oldWeapon._frame.index
+            );
+
+            newWeapon.guid = oldWeapon.guid;
+            newWeapon.fireRate = oldWeapon.fireRate;
+            newWeapon.damage = oldWeapon.damage;
+            game.physics.p2.enable(newWeapon);
+            newWeapon.checkWorldBounds = true;
+            newWeapon.body.collideWorldBounds = true;
+            newWeapon.anchor.setTo(0.5, 0.5);
+            newWeapon.body.mass = 1;
+            newWeapon.body.fixedRotation = true;
+            newWeapon.body.setCollisionGroup(weaponCollisionGroup);
+            newWeapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup, bulletCollisionGroup]);
+            newWeapon.body.setMaterial(weaponMaterial);
+            newWeapon.body.createGroupCallback(playerCollisionGroup, getWeapon);
+
+            user.sprite.body.weapon = undefined;
+            user.sprite.children[0].children.forEach(function(weapon){
                 weapon.destroy();
+            });
+
+            if(publish){
+                socket.publish("drop", globalPlayerName);
             }
-        });
-
-        let newWeapon = weapons.create(user.sprite.x, user.sprite.y, 'weapon', oldWeapon._frame.index);
-
-        newWeapon.guid = oldWeapon.guid;
-        newWeapon.fireRate = oldWeapon.fireRate;
-        newWeapon.damage = oldWeapon.damage;
-        game.physics.p2.enable(newWeapon);
-        newWeapon.checkWorldBounds = true;
-        newWeapon.body.collideWorldBounds = true;
-        newWeapon.anchor.setTo(0.5, 0.5);
-        newWeapon.body.mass = 1;
-        newWeapon.body.fixedRotation = true;
-        newWeapon.body.setCollisionGroup(weaponCollisionGroup);
-        newWeapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup, bulletCollisionGroup]);
-        newWeapon.body.setMaterial(weaponMaterial);
-        newWeapon.body.createGroupCallback(playerCollisionGroup, getWeapon);
+        }
     }
 
     function fire(user) {
@@ -400,6 +419,7 @@ window.onload = function () {
         weapons.setAll('checkWorldBounds', true);
         weapons.setAll('body.fixedRotation', true);
         weapons.forEach(function(weapon){
+            weapon.body.setCircle(15);
             weapon.body.setCollisionGroup(weaponCollisionGroup);
             weapon.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
             weapon.body.setMaterial(weaponMaterial);
@@ -425,7 +445,7 @@ window.onload = function () {
         bullets.setAll('body.fixedRotation', true);
         bullets.forEach(function(bullet){
             bullet.body.setCollisionGroup(bulletCollisionGroup);
-            bullet.body.collides([weaponCollisionGroup, groundCollisionGroup, playerCollisionGroup]);
+            bullet.body.collides([groundCollisionGroup, playerCollisionGroup]);
             bullet.body.setMaterial(bulletMaterial);
             bullet.body.createGroupCallback(groundCollisionGroup, removeBullet);
             bullet.body.createGroupCallback(playerCollisionGroup, hitUser);
@@ -444,7 +464,7 @@ window.onload = function () {
                     player.sprite.kill();
                 }
                 if(player.sprite.alive.label){
-                    player.sprite.label.destroy();
+                    player.sprite.label.kill();
                 }
             }
             else{
@@ -472,6 +492,11 @@ window.onload = function () {
                 }
 
                 userSpriteHandler(userData);
+            }
+        });
+        socket.subscribe("drop").watch(function (username) {
+            if(username !== globalPlayerName){
+                dropWeapon(username, 80, false);
             }
         });
 
@@ -592,6 +617,10 @@ window.onload = function () {
         }
         else{
             player.isFiring = false;
+        }
+
+        if (keys.drop.isDown && player && player.sprite.body && player.sprite.body.weapon && player.sprite.health > 0) {
+            dropWeapon(globalPlayerName, 80, true)
         }
 
         player.sprite.label.alignTo(player.sprite, Phaser.BOTTOM_CENTER, 0, 50);
