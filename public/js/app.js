@@ -144,7 +144,7 @@ window.onload = function () {
 
         user.sprite.label.alignTo(user.sprite, Phaser.BOTTOM_CENTER, 0, 50);
 
-        if(userData.isFiring){
+        if(userData.isFiring && userData.health > 0 && user.sprite.alive){
             fire(user)
         }
 
@@ -203,7 +203,9 @@ window.onload = function () {
     }
 
     function getWeapon(weapon, user) {
-        if(!user.weapon){
+        if((user && user.weapon && (user.weapon.guid === weapon.sprite.guid))
+            || (user && !user.weapon)
+            || weapon.sprite._frame.index === user.weapon._frame.index){
             let wpn = weapons.create(10, -5, 'weapon', weapon.sprite._frame.index);
             wpn.guid = weapon.sprite.guid;
             wpn.fireRate = weapon.sprite.fireRate;
@@ -228,6 +230,9 @@ window.onload = function () {
 
             user.sprite.damage(damage);
             if(user.sprite.health <= 0){
+                if(user.sprite.body && user.sprite.body.weapon){
+                    dropWeapon(user.sprite.name, 0, false);
+                }
                 user.sprite.kill();
                 user.sprite.label.kill();
 
@@ -276,6 +281,8 @@ window.onload = function () {
             user.sprite.children[0].children.forEach(function(weapon){
                 weapon.destroy();
             });
+
+            user.sprite.children[0].children = [];
 
             if(publish){
                 socket.publish("drop", username);
@@ -462,15 +469,13 @@ window.onload = function () {
             if(userData === "kill"){
                 if(player.sprite.alive){
                     player.sprite.kill();
-                }
-                if(player.sprite.alive.label){
                     player.sprite.label.kill();
                 }
             }
             else{
                 weapons.removeAll(true);
 
-                if(userData.weapons && Array.isArray(userData.weapons) && userData.weapons.length > 0){
+                if(userData.weapons && Array.isArray(userData.weapons)){
                     userData.weapons.forEach(function(weaponFromServer){
                         let newWeapon = weapons.create(weaponFromServer.x, weaponFromServer.y, 'weapon', weaponFromServer.index);
                         newWeapon.guid = weaponFromServer.guid;

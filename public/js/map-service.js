@@ -18,6 +18,20 @@ const mapService = {
                 frame: 19,
                 damage: 40,
                 fireRate: 1000
+            },
+            superGun: {
+                x: 780,
+                y: 200,
+                frame: 3,
+                damage: 5,
+                fireRate: 80
+            },
+            m4: {
+                x: 150,
+                y: 220,
+                frame: 18,
+                damage: 15,
+                fireRate: 150
             }
         }
     }
