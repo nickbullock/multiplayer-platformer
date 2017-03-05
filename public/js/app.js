@@ -633,10 +633,20 @@ window.onload = function () {
         player.sprite.children.forEach(function (sprite) {
             if(sprite.key !== 'jackBeardBody'){
                 if (player.facing === 1 && (angle > -1.2 && angle < 1.2)) {
+                    sprite.scale.x = 1;
                     sprite.rotation = game.physics.arcade.angleToPointer(player.sprite);
                 }
+                if (player.facing === 1 && (angle < -1.2 || angle > 1.2)) {
+                    sprite.scale.x = -1;
+                    sprite.rotation = Math.PI + game.physics.arcade.angleToPointer(player.sprite);
+                }
                 if (player.facing === -1 && (angle > Math.PI - 1.2 || angle < 1.2 - Math.PI)) {
+                    sprite.scale.x = 1;
                     sprite.rotation = Math.PI - game.physics.arcade.angleToPointer(player.sprite);
+                }
+                if (player.facing === -1 && (angle < Math.PI - 1.2 && angle > 1.2 - Math.PI)) {
+                    sprite.scale.x = -1;
+                    sprite.rotation = -game.physics.arcade.angleToPointer(player.sprite);
                 }
             }
         });
