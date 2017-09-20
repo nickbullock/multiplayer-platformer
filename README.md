@@ -6,6 +6,7 @@
 <p align="center">
   <img src="https://media.giphy.com/media/3ohhwEhiljBS6NsTjq/giphy.gif">
 </p>
+
 # Стек
 phaser, socketcluster, node
 # Запуск
